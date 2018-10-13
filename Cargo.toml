@@ -1,0 +1,17 @@
+[package]
+name = "escrow_recovery"
+version = "0.1.0"
+authors = [
+    "Omer <omer@kzencorp.com>",
+    "Gary <gary@kzencorp.com>"
+]
+
+[lib]
+crate-type = ["dylib"]
+
+[dependencies]
+cryptography-utils = { git = "https://github.com/KZen-networks/cryptography-utils" , features =  ["curve25519"]}
+bulletproofs = {git ="https://github.com/KZen-networks/bulletproofs"}
+kms = {git ="https://github.com/KZen-networks/kms"}
+
+
