@@ -15,21 +15,15 @@ version 3 of the License, or (at your option) any later version.
 @license GPL-3.0+ <https://github.com/KZen-networks/escrow-recovery/blob/master/LICENSE>
 */
 
-use cryptography_utils::{FE,GE,BigInt};
-use cryptography_utils::cryptographic_primitives::proofs::sigma_correct_homomorphic_elgamal_encryption_of_dlog::{HomoELGamalDlogProof,hegdWitness,hegdStatement};
-use cryptography_utils::cryptographic_primitives::proofs::sigma_correct_homomrphic_elgamal_enc::{HomoELGamalProof,hegWitness,hegStatement};
-use cryptography_utils::cryptographic_primitives::hashing::hash_sha512::HSha512;
-use cryptography_utils::cryptographic_primitives::hashing::traits::*;
 use cryptography_utils::elliptic::curves::traits::*;
-use bulletproof::proofs::range_proof::{RangeProof,generate_random_point};
-use cryptography_utils::elliptic::curves::traits::*;
-use std::ops::{Shr, Shl,Mul, Add};
-use juggling::proof_system::{hElGamal, Witness, hElGamalSegmented};
+use cryptography_utils::{BigInt, FE, GE};
+use juggling::proof_system::{Helgamal, Helgamalsegmented, Witness};
+use std::ops::{Shl, Shr};
 use Errors::{self, ErrorDecrypting};
 
-pub struct mSegmentation;
+pub struct Msegmentation;
 
-impl mSegmentation {
+impl Msegmentation {
     pub fn get_segment_k(secret: &FE, segment_size: &usize, k: u8) -> FE {
         let ss_bn = secret.to_big_int();
         let segment_size_u32 = segment_size.clone() as u32;
@@ -53,14 +47,14 @@ impl mSegmentation {
         k: u8,
         pub_ke_y: &GE,
         G: &GE,
-    ) -> hElGamal {
-        let segment_k = mSegmentation::get_segment_k(secret, segment_size, k);
+    ) -> Helgamal {
+        let segment_k = Msegmentation::get_segment_k(secret, segment_size, k);
         let E_k = G.clone() * random;
         let r_kY = pub_ke_y.clone() * random;
         let x_kG = G.clone() * segment_k;
         let D_k = r_kY + x_kG;
 
-        hElGamal { D: D_k, E: E_k }
+        Helgamal { D: D_k, E: E_k }
     }
 
     // TODO: find a way using generics to combine the following two fn's
@@ -104,14 +98,14 @@ impl mSegmentation {
         num_of_segments: usize,
         pub_ke_y: &GE,
         G: &GE,
-    ) -> (Witness, hElGamalSegmented) {
+    ) -> (Witness, Helgamalsegmented) {
         let r_vec = (0..num_of_segments)
             .map(|_| ECScalar::new_random())
             .collect::<Vec<FE>>();
         let segmented_enc = (0..num_of_segments)
             .map(|i| {
                 //  let segment_i = mSegmentation::get_segment_k(secret,segment_size,i as u8);
-                mSegmentation::encrypt_segment_k(
+                Msegmentation::encrypt_segment_k(
                     secret,
                     &r_vec[i],
                     &segment_size,
@@ -119,18 +113,18 @@ impl mSegmentation {
                     pub_ke_y,
                     G,
                 )
-            }).collect::<Vec<hElGamal>>();
+            }).collect::<Vec<Helgamal>>();
         let x_vec = (0..num_of_segments)
-            .map(|i| mSegmentation::get_segment_k(secret, segment_size, i as u8))
+            .map(|i| Msegmentation::get_segment_k(secret, segment_size, i as u8))
             .collect::<Vec<FE>>();
         let w = Witness { x_vec, r_vec };
-        let heg_segmented = hElGamalSegmented { DE: segmented_enc };
+        let heg_segmented = Helgamalsegmented { DE: segmented_enc };
         (w, heg_segmented)
     }
 
     //TODO: implement a more advance algorithm for dlog
     pub fn decrypt_segment(
-        DE: &hElGamal,
+        DE: &Helgamal,
         G: &GE,
         private_key: &FE,
         segment_size: &usize,
@@ -154,7 +148,7 @@ impl mSegmentation {
     }
 
     pub fn decrypt(
-        DE_vec: &hElGamalSegmented,
+        DE_vec: &Helgamalsegmented,
         G: &GE,
         private_key: &FE,
         segment_size: &usize,
@@ -162,11 +156,11 @@ impl mSegmentation {
         let vec_secret = (0..DE_vec.DE.len())
             .map(|i| {
                 let result =
-                    mSegmentation::decrypt_segment(&DE_vec.DE[i], G, private_key, segment_size)
+                    Msegmentation::decrypt_segment(&DE_vec.DE[i], G, private_key, segment_size)
                         .expect("error decrypting");
                 result
             }).collect::<Vec<FE>>();
 
-        mSegmentation::assemble_fe(&vec_secret, &segment_size)
+        Msegmentation::assemble_fe(&vec_secret, &segment_size)
     }
 }

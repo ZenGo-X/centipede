@@ -30,8 +30,18 @@ impl SecretShare {
     pub fn generate() -> SecretShare {
         let base_point: GE = ECPoint::generator();
         let secret: FE = ECScalar::new_random();
-        let pubkey = base_point * &secret;
-        SecretShare { secret, pubkey }
+        // make sure no segments are zero segments:
+        let secret_bn = secret.to_big_int();
+        let secret_bytes = BigInt::to_vec(&secret_bn);
+        if secret_bytes.iter().any(|&x| x == 0){
+            SecretShare::generate()
+        }
+        else {
+            let pubkey = base_point * &secret;
+            return SecretShare { secret, pubkey } ;
+        }
+
+
     }
     //based on VRF construction from ellitpic curve: https://eprint.iacr.org/2017/099.pdf
     //TODO: consider to output in str format
@@ -59,9 +69,7 @@ pub fn generate_random_point(bytes: &[u8]) -> GE {
 
 #[cfg(test)]
 mod tests {
-    use cryptography_utils::elliptic::curves::traits::*;
     use cryptography_utils::BigInt;
-    use cryptography_utils::{FE, GE};
     use wallet::SecretShare;
     #[test]
     fn test_randomness() {

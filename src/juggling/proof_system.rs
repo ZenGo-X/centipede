@@ -20,22 +20,18 @@ use cryptography_utils::cryptographic_primitives::proofs::sigma_correct_homomorp
 use cryptography_utils::cryptographic_primitives::proofs::sigma_correct_homomrphic_elgamal_enc::{HomoELGamalProof,hegWitness,hegStatement};
 use cryptography_utils::cryptographic_primitives::hashing::hash_sha512::HSha512;
 use cryptography_utils::cryptographic_primitives::hashing::traits::*;
-use cryptography_utils::elliptic::curves::traits::*;
 use cryptography_utils::arithmetic::traits::Converter;
 use bulletproof::proofs::range_proof::{RangeProof,generate_random_point};
-use cryptography_utils::elliptic::curves::traits::*;
-use std::ops::Shr;
-use wallet::SecretShare;
-use juggling::segmentation::mSegmentation;
+use juggling::segmentation::Msegmentation;
 use Errors::{self, ErrorProving};
 
-pub struct hElGamal {
+pub struct Helgamal {
     pub D: GE,
     pub E: GE,
 }
 
-pub struct hElGamalSegmented {
-    pub DE: Vec<hElGamal>,
+pub struct Helgamalsegmented {
+    pub DE: Vec<Helgamal>,
 }
 
 pub struct Witness {
@@ -52,7 +48,7 @@ pub struct Proof {
 impl Proof {
     pub fn prove(
         w: &Witness,
-        c: &hElGamalSegmented,
+        c: &Helgamalsegmented,
         G: &GE,
         Y: &GE,
         segment_size: &usize,
@@ -111,12 +107,12 @@ impl Proof {
             }).collect::<Vec<HomoELGamalProof>>();
 
         // proof of correct ElGamal DLog
-        let mut D_vec: Vec<GE> = (0..num_segments).map(|i| c.DE[i].D.clone()).collect();
-        let mut E_vec: Vec<GE> = (0..num_segments).map(|i| c.DE[i].E.clone()).collect();
-        let sum_D = mSegmentation::assemble_ge(&D_vec, segment_size);
-        let sum_E = mSegmentation::assemble_ge(&E_vec, segment_size);
-        let sum_r = mSegmentation::assemble_fe(&w.r_vec, segment_size);
-        let sum_x = mSegmentation::assemble_fe(&w.x_vec, segment_size);
+        let D_vec: Vec<GE> = (0..num_segments).map(|i| c.DE[i].D.clone()).collect();
+        let E_vec: Vec<GE> = (0..num_segments).map(|i| c.DE[i].E.clone()).collect();
+        let sum_D = Msegmentation::assemble_ge(&D_vec, segment_size);
+        let sum_E = Msegmentation::assemble_ge(&E_vec, segment_size);
+        let sum_r = Msegmentation::assemble_fe(&w.r_vec, segment_size);
+        let sum_x = Msegmentation::assemble_fe(&w.x_vec, segment_size);
         let Q = G.clone() * &sum_x;
         let delta = hegdStatement {
             G: G.clone(),
@@ -137,7 +133,7 @@ impl Proof {
 
     pub fn verify(
         &self,
-        c: &hElGamalSegmented,
+        c: &Helgamalsegmented,
         G: &GE,
         Y: &GE,
         Q: &GE,
@@ -169,7 +165,7 @@ impl Proof {
                 generate_random_point(&Converter::to_vec(&hash_j))
             }).collect::<Vec<GE>>();
 
-        let mut D_vec: Vec<GE> = (0..num_segments).map(|i| c.DE[i].D.clone()).collect();
+        let D_vec: Vec<GE> = (0..num_segments).map(|i| c.DE[i].D.clone()).collect();
         let bp_ver = self
             .bulletproof
             .verify(&g_vec, &h_vec, G, Y, D_vec.clone(), segment_size.clone())
@@ -186,9 +182,9 @@ impl Proof {
                 self.elgamal_enc[i].verify(&delta).is_ok()
             }).collect::<Vec<bool>>();
 
-        let mut E_vec: Vec<GE> = (0..num_segments).map(|i| c.DE[i].E.clone()).collect();
-        let sum_D = mSegmentation::assemble_ge(&D_vec, segment_size);
-        let sum_E = mSegmentation::assemble_ge(&E_vec, segment_size);
+        let E_vec: Vec<GE> = (0..num_segments).map(|i| c.DE[i].E.clone()).collect();
+        let sum_D = Msegmentation::assemble_ge(&D_vec, segment_size);
+        let sum_E = Msegmentation::assemble_ge(&E_vec, segment_size);
 
         let delta = hegdStatement {
             G: G.clone(),
@@ -210,10 +206,9 @@ impl Proof {
 #[cfg(test)]
 mod tests {
     use cryptography_utils::elliptic::curves::traits::*;
-    use cryptography_utils::BigInt;
     use cryptography_utils::{FE, GE};
     use juggling::proof_system::*;
-    use juggling::segmentation::mSegmentation;
+    use juggling::segmentation::Msegmentation;
     use wallet::SecretShare;
 
     #[test]
@@ -225,9 +220,11 @@ mod tests {
         let x = SecretShare::generate();
         let Q = G.clone() * &x.secret;
         let (segments, encryptions) =
-            mSegmentation::to_encrypted_segments(&x.secret, &segment_size, 32, &Y, &G);
-        let secret_new = mSegmentation::assemble_fe(&segments.x_vec, &segment_size);
-        let secret_decrypted = mSegmentation::decrypt(&encryptions, &G, &y, &segment_size);
+            Msegmentation::to_encrypted_segments(&x.secret, &segment_size, 32, &Y, &G);
+        let secret_new = Msegmentation::assemble_fe(&segments.x_vec, &segment_size);
+        let secret_decrypted = Msegmentation::decrypt(&encryptions, &G, &y, &segment_size);
+
+
         assert_eq!(x.secret.get_element(), secret_new.get_element());
         assert_eq!(x.secret.get_element(), secret_decrypted.get_element());
 
@@ -246,9 +243,9 @@ mod tests {
         let x = SecretShare::generate();
         let Q = G.clone() * &x.secret + G.clone();
         let (segments, encryptions) =
-            mSegmentation::to_encrypted_segments(&x.secret, &segment_size, 32, &Y, &G);
-        let secret_new = mSegmentation::assemble_fe(&segments.x_vec, &segment_size);
-        let secret_decrypted = mSegmentation::decrypt(&encryptions, &G, &y, &segment_size);
+            Msegmentation::to_encrypted_segments(&x.secret, &segment_size, 32, &Y, &G);
+        let secret_new = Msegmentation::assemble_fe(&segments.x_vec, &segment_size);
+        let secret_decrypted = Msegmentation::decrypt(&encryptions, &G, &y, &segment_size);
         assert_eq!(x.secret.get_element(), secret_new.get_element());
         assert_eq!(x.secret.get_element(), secret_decrypted.get_element());
 
