@@ -16,3 +16,4 @@ version 3 of the License, or (at your option) any later version.
 pub mod server;
 pub mod client;
 pub mod escrow;
+pub mod segmentation;

@@ -1,5 +1,5 @@
 [package]
-name = "escrow_recovery"
+name = "centipede"
 version = "0.1.0"
 authors = [
     "Omer <omer@kzencorp.com>",
@@ -11,7 +11,8 @@ crate-type = ["dylib"]
 
 [dependencies]
 cryptography-utils = { git = "https://github.com/KZen-networks/cryptography-utils" , features =  ["curve25519"]}
-bulletproofs = {git ="https://github.com/KZen-networks/bulletproofs"}
+bulletproof = {git ="https://github.com/KZen-networks/bulletproofs"}
 kms = {git ="https://github.com/KZen-networks/kms"}
 
-
+[patch.crates-io]
+rust-gmp = { version = "0.5.0", features = ["serde_support"], git = "https://github.com/KZen-networks/rust-gmp" }
