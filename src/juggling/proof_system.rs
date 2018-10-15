@@ -1,3 +1,4 @@
+#![allow(non_snake_case)]
 /*
 centipede
 
@@ -14,8 +15,6 @@ version 3 of the License, or (at your option) any later version.
 
 */
 
-
-
 use cryptography_utils::{FE,GE,BigInt};
 use cryptography_utils::cryptographic_primitives::proofs::sigma_correct_homomorphic_elgamal_encryption_of_dlog::{HomoELGamalDlogProof,hegdWitness,hegdStatement};
 use cryptography_utils::cryptographic_primitives::proofs::sigma_correct_homomrphic_elgamal_enc::{HomoELGamalProof,hegWitness,hegStatement};
@@ -30,32 +29,34 @@ use wallet::SecretShare;
 use juggling::segmentation::mSegmentation;
 use Errors::{self, ErrorProving};
 
-pub struct hElGamal{
+pub struct hElGamal {
     pub D: GE,
     pub E: GE,
 }
 
-pub struct hElGamalSegmented{
+pub struct hElGamalSegmented {
     pub DE: Vec<hElGamal>,
-
 }
 
-pub struct Witness{
+pub struct Witness {
     pub x_vec: Vec<FE>,
     pub r_vec: Vec<FE>,
 }
 
-
-pub struct Proof{
+pub struct Proof {
     pub bulletproof: RangeProof,
     pub elgamal_enc: Vec<HomoELGamalProof>,
     pub elgamal_enc_dlog: HomoELGamalDlogProof,
 }
 
-impl Proof{
-
-    pub fn prove(w: &Witness, c: &hElGamalSegmented, G: &GE,  Y: &GE, segment_size: &usize) -> Proof{
-
+impl Proof {
+    pub fn prove(
+        w: &Witness,
+        c: &hElGamalSegmented,
+        G: &GE,
+        Y: &GE,
+        segment_size: &usize,
+    ) -> Proof {
         // bulletproofs:
         let num_segments = w.x_vec.len();
         // bit range
@@ -67,7 +68,6 @@ impl Proof{
         let KZen: &[u8] = &[75, 90, 101, 110];
         let kzen_label = BigInt::from(KZen);
 
-
         let g_vec = (0..nm)
             .map(|i| {
                 let kzen_label_i = BigInt::from(i as u32) + &kzen_label;
@@ -83,51 +83,66 @@ impl Proof{
                 generate_random_point(&Converter::to_vec(&hash_j))
             }).collect::<Vec<GE>>();
 
-        let range = BigInt::from(2).pow(n as u32);
-
-
-        let range_proof = RangeProof::prove(&g_vec, &h_vec, &G, &Y, w.x_vec.clone(), w.r_vec.clone(), n.clone());
+        let range_proof = RangeProof::prove(
+            &g_vec,
+            &h_vec,
+            &G,
+            &Y,
+            w.x_vec.clone(),
+            w.r_vec.clone(),
+            n.clone(),
+        );
 
         // proofs of correct elgamal:
 
-        let elgamal_proofs = (0..num_segments).map(|i|{
-            let w =  hegWitness{r: w.r_vec[i].clone(), x: w.x_vec[i].clone()};
-            let delta = hegStatement{
-                G: G.clone(),
-                Y: Y.clone(),
-                D: c.DE[i].D.clone(),
-                E: c.DE[i].E.clone(),
-            };
-            HomoELGamalProof::prove(&w, &delta)
-        }).collect::<Vec<HomoELGamalProof>>();
+        let elgamal_proofs = (0..num_segments)
+            .map(|i| {
+                let w = hegWitness {
+                    r: w.r_vec[i].clone(),
+                    x: w.x_vec[i].clone(),
+                };
+                let delta = hegStatement {
+                    G: G.clone(),
+                    Y: Y.clone(),
+                    D: c.DE[i].D.clone(),
+                    E: c.DE[i].E.clone(),
+                };
+                HomoELGamalProof::prove(&w, &delta)
+            }).collect::<Vec<HomoELGamalProof>>();
 
         // proof of correct ElGamal DLog
         let mut D_vec: Vec<GE> = (0..num_segments).map(|i| c.DE[i].D.clone()).collect();
         let mut E_vec: Vec<GE> = (0..num_segments).map(|i| c.DE[i].E.clone()).collect();
-        let sum_D = mSegmentation::assemble_ge(&D_vec, segment_size );
-        let sum_E = mSegmentation::assemble_ge(&E_vec, segment_size );
-        let sum_r = mSegmentation::assemble_fe(&w.r_vec, segment_size );
-        let sum_x = mSegmentation::assemble_fe(&w.x_vec, segment_size );
+        let sum_D = mSegmentation::assemble_ge(&D_vec, segment_size);
+        let sum_E = mSegmentation::assemble_ge(&E_vec, segment_size);
+        let sum_r = mSegmentation::assemble_fe(&w.r_vec, segment_size);
+        let sum_x = mSegmentation::assemble_fe(&w.x_vec, segment_size);
         let Q = G.clone() * &sum_x;
-        let delta = hegdStatement{
+        let delta = hegdStatement {
             G: G.clone(),
             Y: Y.clone(),
             Q,
             D: sum_D,
             E: sum_E,
         };
-        let w = hegdWitness{r: sum_r, x: sum_x};
+        let w = hegdWitness { r: sum_r, x: sum_x };
         let elgamal_dlog_proof = HomoELGamalDlogProof::prove(&w, &delta);
 
-        Proof{
+        Proof {
             bulletproof: range_proof,
             elgamal_enc: elgamal_proofs,
             elgamal_enc_dlog: elgamal_dlog_proof,
         }
     }
 
-    pub fn verify(&self, c: &hElGamalSegmented, G: &GE,  Y: &GE , Q: &GE , segment_size: &usize) -> Result<(), Errors>{
-
+    pub fn verify(
+        &self,
+        c: &hElGamalSegmented,
+        G: &GE,
+        Y: &GE,
+        Q: &GE,
+        segment_size: &usize,
+    ) -> Result<(), Errors> {
         // bulletproofs:
         let num_segments = self.elgamal_enc.len();
         // bit range
@@ -139,7 +154,6 @@ impl Proof{
         let KZen: &[u8] = &[75, 90, 101, 110];
         let kzen_label = BigInt::from(KZen);
 
-
         let g_vec = (0..nm)
             .map(|i| {
                 let kzen_label_i = BigInt::from(i as u32) + &kzen_label;
@@ -156,23 +170,27 @@ impl Proof{
             }).collect::<Vec<GE>>();
 
         let mut D_vec: Vec<GE> = (0..num_segments).map(|i| c.DE[i].D.clone()).collect();
-        let bp_ver = self.bulletproof.verify(&g_vec, &h_vec,G, Y, D_vec.clone(), segment_size.clone()).expect("bad range proof");
+        let bp_ver = self
+            .bulletproof
+            .verify(&g_vec, &h_vec, G, Y, D_vec.clone(), segment_size.clone())
+            .expect("bad range proof");
 
-        let elgamal_proofs_ver = (0..num_segments).map(|i|{
-            let delta = hegStatement{
-                G: G.clone(),
-                Y: Y.clone(),
-                D: c.DE[i].D.clone(),
-                E: c.DE[i].E.clone(),
-            };
-            self.elgamal_enc[i].verify(&delta).is_ok()
-        }).collect::<Vec<bool>>();
+        let elgamal_proofs_ver = (0..num_segments)
+            .map(|i| {
+                let delta = hegStatement {
+                    G: G.clone(),
+                    Y: Y.clone(),
+                    D: c.DE[i].D.clone(),
+                    E: c.DE[i].E.clone(),
+                };
+                self.elgamal_enc[i].verify(&delta).is_ok()
+            }).collect::<Vec<bool>>();
 
         let mut E_vec: Vec<GE> = (0..num_segments).map(|i| c.DE[i].E.clone()).collect();
-        let sum_D = mSegmentation::assemble_ge(&D_vec, segment_size );
-        let sum_E = mSegmentation::assemble_ge(&E_vec, segment_size );
+        let sum_D = mSegmentation::assemble_ge(&D_vec, segment_size);
+        let sum_E = mSegmentation::assemble_ge(&E_vec, segment_size);
 
-        let delta = hegdStatement{
+        let delta = hegdStatement {
             G: G.clone(),
             Y: Y.clone(),
             Q: Q.clone(),
@@ -181,65 +199,62 @@ impl Proof{
         };
 
         let elgamal_dlog_proof_ver = self.elgamal_enc_dlog.verify(&delta).is_ok();
-        if bp_ver && elgamal_dlog_proof_ver && elgamal_proofs_ver.iter().all(|&x| x==true){
+        if bp_ver && elgamal_dlog_proof_ver && elgamal_proofs_ver.iter().all(|&x| x == true) {
             Ok(())
-        }
-        else{
+        } else {
             Err(ErrorProving)
         }
     }
-
 }
 
 #[cfg(test)]
 mod tests {
+    use cryptography_utils::elliptic::curves::traits::*;
     use cryptography_utils::BigInt;
     use cryptography_utils::{FE, GE};
+    use juggling::proof_system::*;
     use juggling::segmentation::mSegmentation;
-    use cryptography_utils::elliptic::curves::traits::*;
     use wallet::SecretShare;
-    use juggling::server::*;
 
     #[test]
     fn test_varifiable_encryption() {
         let segment_size = 8;
-        let y : FE = ECScalar::new_random();
-        let G :GE= ECPoint::generator();
+        let y: FE = ECScalar::new_random();
+        let G: GE = ECPoint::generator();
         let Y = G.clone() * &y;
-        let x =  SecretShare::generate();
+        let x = SecretShare::generate();
         let Q = G.clone() * &x.secret;
-        let (segments, encryptions) = mSegmentation::to_encrypted_segments(&x.secret, &segment_size,32, &Y, &G );
-        let secret_new = mSegmentation::assemble_fe(&segments.x_vec,&segment_size);
+        let (segments, encryptions) =
+            mSegmentation::to_encrypted_segments(&x.secret, &segment_size, 32, &Y, &G);
+        let secret_new = mSegmentation::assemble_fe(&segments.x_vec, &segment_size);
         let secret_decrypted = mSegmentation::decrypt(&encryptions, &G, &y, &segment_size);
         assert_eq!(x.secret.get_element(), secret_new.get_element());
         assert_eq!(x.secret.get_element(), secret_decrypted.get_element());
 
-        let proof = Proof::prove(&segments, &encryptions,&G, &Y, &segment_size);
-        let result = proof.verify(&encryptions,&G, &Y, &Q, &segment_size );
+        let proof = Proof::prove(&segments, &encryptions, &G, &Y, &segment_size);
+        let result = proof.verify(&encryptions, &G, &Y, &Q, &segment_size);
         assert!(result.is_ok());
-
     }
-
 
     #[test]
     #[should_panic]
     fn test_varifiable_encryption_bad_Q() {
         let segment_size = 8;
-        let y : FE = ECScalar::new_random();
-        let G :GE= ECPoint::generator();
+        let y: FE = ECScalar::new_random();
+        let G: GE = ECPoint::generator();
         let Y = G.clone() * &y;
-        let x =  SecretShare::generate();
+        let x = SecretShare::generate();
         let Q = G.clone() * &x.secret + G.clone();
-        let (segments, encryptions) = mSegmentation::to_encrypted_segments(&x.secret, &segment_size,32, &Y, &G );
-        let secret_new = mSegmentation::assemble_fe(&segments.x_vec,&segment_size);
+        let (segments, encryptions) =
+            mSegmentation::to_encrypted_segments(&x.secret, &segment_size, 32, &Y, &G);
+        let secret_new = mSegmentation::assemble_fe(&segments.x_vec, &segment_size);
         let secret_decrypted = mSegmentation::decrypt(&encryptions, &G, &y, &segment_size);
         assert_eq!(x.secret.get_element(), secret_new.get_element());
         assert_eq!(x.secret.get_element(), secret_decrypted.get_element());
 
-        let proof = Proof::prove(&segments, &encryptions,&G, &Y, &segment_size);
-        let result = proof.verify(&encryptions,&G, &Y, &Q, &segment_size );
+        let proof = Proof::prove(&segments, &encryptions, &G, &Y, &segment_size);
+        let result = proof.verify(&encryptions, &G, &Y, &Q, &segment_size);
         assert!(result.is_ok());
-
     }
 
 }

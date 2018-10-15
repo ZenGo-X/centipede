@@ -13,7 +13,5 @@ version 3 of the License, or (at your option) any later version.
 
 @license GPL-3.0+ <https://github.com/KZen-networks/cryptography-utils/blob/master/LICENSE>
 */
-pub mod server;
-pub mod client;
-pub mod escrow;
+pub mod proof_system;
 pub mod segmentation;

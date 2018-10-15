@@ -1,4 +1,4 @@
-
+#![allow(non_snake_case)]
 /*
 centipede
 
@@ -15,41 +15,31 @@ version 3 of the License, or (at your option) any later version.
 
 */
 
-
-use cryptography_utils::{FE,GE,BigInt};
-use cryptography_utils::elliptic::curves::traits::*;
-use cryptography_utils::arithmetic::traits::{Converter,Modulo};
+use cryptography_utils::arithmetic::traits::{Converter, Modulo};
 use cryptography_utils::cryptographic_primitives::hashing::hash_sha256::HSha256;
 use cryptography_utils::cryptographic_primitives::hashing::traits::*;
+use cryptography_utils::elliptic::curves::traits::*;
+use cryptography_utils::{BigInt, FE, GE};
 
-pub struct SecretShare{
+pub struct SecretShare {
     pub secret: FE,
     pub pubkey: GE,
 }
 
-impl SecretShare{
-
-    pub fn generate() -> SecretShare{
+impl SecretShare {
+    pub fn generate() -> SecretShare {
         let base_point: GE = ECPoint::generator();
         let secret: FE = ECScalar::new_random();
-        let temp :FE= ECScalar::from(&BigInt::from(128));
         let pubkey = base_point * &secret;
-        SecretShare{
-            secret,
-            pubkey,
-        }
-
+        SecretShare { secret, pubkey }
     }
     //based on VRF construction from ellitpic curve: https://eprint.iacr.org/2017/099.pdf
     //TODO: consider to output in str format
-    pub fn generate_randomness(&self, label: &BigInt) -> BigInt{
+    pub fn generate_randomness(&self, label: &BigInt) -> BigInt {
         let h = generate_random_point(&Converter::to_vec(label));
         let gamma = h * &self.secret;
         let beta = HSha256::create_hash_from_ge(&[&gamma]);
         beta.to_big_int()
-
-
-
     }
 }
 
@@ -69,26 +59,20 @@ pub fn generate_random_point(bytes: &[u8]) -> GE {
 
 #[cfg(test)]
 mod tests {
+    use cryptography_utils::elliptic::curves::traits::*;
     use cryptography_utils::BigInt;
     use cryptography_utils::{FE, GE};
-    use cryptography_utils::elliptic::curves::traits::*;
-    use cryptography_utils::arithmetic::traits::{Converter,Modulo};
     use wallet::SecretShare;
-    use std::str::FromStr;
     #[test]
     fn test_randomness() {
-
-        let x =  SecretShare::generate();
-        let bitcoin_label = String::from("Bitcoin1");
-        let ethereum_label = String::from("Ethereum1");
-        let bitcoin_label = bitcoin_label
-        let label_btc = BigInt::from_hex(&bitcoin_label);
-        let label_eth = BigInt::from_hex(&ethereum_label);
+        let x = SecretShare::generate();
+        let bitcoin_label = String::from("Bitcoin1").into_bytes();
+        let ethereum_label = String::from("Ethereum1").into_bytes();
+        let label_btc = BigInt::from(&bitcoin_label[..]);
+        let label_eth = BigInt::from(&ethereum_label[..]);
         let randmoness_btc = x.generate_randomness(&label_btc);
         let randmoness_eth = x.generate_randomness(&label_eth);
-        assert_ne!(randmoness_btc,randmoness_eth)
-
-
+        assert_ne!(randmoness_btc, randmoness_eth)
     }
 
 }

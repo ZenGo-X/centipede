@@ -15,13 +15,12 @@
 
 pub mod juggling;
 pub mod wallet;
-extern crate cryptography_utils;
 extern crate bulletproof;
+extern crate cryptography_utils;
 extern crate kms;
-
 
 #[derive(Copy, PartialEq, Eq, Clone, Debug)]
 pub enum Errors {
     ErrorDecrypting,
-    ErrorProving
+    ErrorProving,
 }
