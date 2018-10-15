@@ -222,6 +222,7 @@ mod tests {
         let (segments, encryptions) =
             Msegmentation::to_encrypted_segments(&x.secret, &segment_size, 32, &Y, &G);
         let secret_new = Msegmentation::assemble_fe(&segments.x_vec, &segment_size);
+      //  println!("secret {:?}", x.secret.clone());
         let secret_decrypted = Msegmentation::decrypt(&encryptions, &G, &y, &segment_size);
 
 
