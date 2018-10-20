@@ -12,7 +12,7 @@ it and/or modify it under the terms of the GNU General Public
 License as published by the Free Software Foundation, either
 version 3 of the License, or (at your option) any later version.
 
-
+@license GPL-3.0+ <https://github.com/KZen-networks/centipede/blob/master/LICENSE>
 */
 
 use cryptography_utils::arithmetic::traits::{Converter, Modulo};
@@ -32,14 +32,10 @@ impl SecretShare {
         let secret: FE = ECScalar::new_random();
         // make sure no segments are zero segments:
         let secret_bn = secret.to_big_int();
-        let secret_bytes = BigInt::to_vec(&secret_bn);
-        if secret_bytes.iter().any(|&x| x == 0){
-            SecretShare::generate()
-        }
-        else {
-            let pubkey = base_point * &secret;
-            return SecretShare { secret, pubkey } ;
-        }
+        let secret:FE  = ECScalar::from(&secret_bn);
+
+        let pubkey = base_point * &secret;
+        return SecretShare { secret, pubkey } ;
 
 
     }
@@ -59,9 +55,8 @@ pub fn generate_random_point(bytes: &[u8]) -> GE {
         return result.unwrap();
     } else {
         let two = BigInt::from(2);
-        let temp: FE = ECScalar::new_random();
         let bn = BigInt::from(bytes);
-        let bn_times_two = BigInt::mod_mul(&bn, &two, &temp.q());
+        let bn_times_two = BigInt::mod_mul(&bn, &two, &FE::q());
         let bytes = BigInt::to_vec(&bn_times_two);
         return generate_random_point(&bytes);
     }

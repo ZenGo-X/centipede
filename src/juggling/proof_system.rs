@@ -12,7 +12,7 @@ it and/or modify it under the terms of the GNU General Public
 License as published by the Free Software Foundation, either
 version 3 of the License, or (at your option) any later version.
 
-
+@license GPL-3.0+ <https://github.com/KZen-networks/centipede/blob/master/LICENSE>
 */
 
 use cryptography_utils::{FE,GE,BigInt};
@@ -85,7 +85,7 @@ impl Proof {
             &G,
             &Y,
             w.x_vec.clone(),
-            w.r_vec.clone(),
+            &w.r_vec,
             n.clone(),
         );
 
@@ -168,8 +168,8 @@ impl Proof {
         let D_vec: Vec<GE> = (0..num_segments).map(|i| c.DE[i].D.clone()).collect();
         let bp_ver = self
             .bulletproof
-            .verify(&g_vec, &h_vec, G, Y, D_vec.clone(), segment_size.clone())
-            .expect("bad range proof");
+            .verify(&g_vec, &h_vec, G, Y, &D_vec, segment_size.clone())
+            .is_ok();
 
         let elgamal_proofs_ver = (0..num_segments)
             .map(|i| {
@@ -222,9 +222,7 @@ mod tests {
         let (segments, encryptions) =
             Msegmentation::to_encrypted_segments(&x.secret, &segment_size, 32, &Y, &G);
         let secret_new = Msegmentation::assemble_fe(&segments.x_vec, &segment_size);
-      //  println!("secret {:?}", x.secret.clone());
         let secret_decrypted = Msegmentation::decrypt(&encryptions, &G, &y, &segment_size);
-
 
         assert_eq!(x.secret.get_element(), secret_new.get_element());
         assert_eq!(x.secret.get_element(), secret_decrypted.get_element());

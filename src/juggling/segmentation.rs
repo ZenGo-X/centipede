@@ -1,18 +1,18 @@
 #![allow(non_snake_case)]
 /*
-escrow-recovery
+centipede
 
 Copyright 2018 by Kzen Networks
 
-This file is part of escrow-recovery library
-(https://github.com/KZen-networks/cryptography-utils)
+This file is part of centipede library
+(https://github.com/KZen-networks/centipede)
 
 Escrow-recovery is free software: you can redistribute
 it and/or modify it under the terms of the GNU General Public
 License as published by the Free Software Foundation, either
 version 3 of the License, or (at your option) any later version.
 
-@license GPL-3.0+ <https://github.com/KZen-networks/escrow-recovery/blob/master/LICENSE>
+@license GPL-3.0+ <https://github.com/KZen-networks/centipede/blob/master/LICENSE>
 */
 
 use cryptography_utils::elliptic::curves::traits::*;
@@ -37,7 +37,9 @@ impl Msegmentation {
         let segment_k_bn_rotated =
             BigInt::shr(segment_k_bn, (k * segment_size.clone() as u8) as usize);
         // println!("test = {:?}", test.to_str_radix(16));
+        if segment_k_bn_rotated == BigInt::zero(){ECScalar::zero()} else{
         ECScalar::from(&segment_k_bn_rotated)
+        }
     }
     //returns r_k,{D_k,E_k}
     pub fn encrypt_segment_k(
@@ -49,12 +51,19 @@ impl Msegmentation {
         G: &GE,
     ) -> Helgamal {
         let segment_k = Msegmentation::get_segment_k(secret, segment_size, k);
-        let E_k = G.clone() * random;
-        let r_kY = pub_ke_y.clone() * random;
-        let x_kG = G.clone() * segment_k;
-        let D_k = r_kY + x_kG;
+        let E_k = G * random;
+        let r_kY = pub_ke_y * random;
+        if segment_k == ECScalar::zero(){
+            let D_k = r_kY;
+            Helgamal { D: D_k, E: E_k }
+        }
+        else{
+            let x_kG = G * &segment_k;
+            let D_k = r_kY + x_kG;
+            Helgamal { D: D_k, E: E_k }
+        }
 
-        Helgamal { D: D_k, E: E_k }
+
     }
 
     // TODO: find a way using generics to combine the following two fn's
@@ -66,11 +75,13 @@ impl Msegmentation {
             .iter()
             .zip(0..segments_2n.len())
             .fold(seg1, |acc, x| {
+                if x.0.clone() == FE::zero() {acc} else{
                 let two_to_the_n = two.pow(segment_size.clone() as u32);
                 let two_to_the_n_shifted = two_to_the_n.shl(x.1 * segment_size);
                 let two_to_the_n_shifted_fe: FE = ECScalar::from(&two_to_the_n_shifted);
                 let shifted_segment = x.0.clone() * two_to_the_n_shifted_fe;
                 acc + shifted_segment
+                }
             });
         return seg_sum;
     }
@@ -123,18 +134,28 @@ impl Msegmentation {
     }
 
     //TODO: implement a more advance algorithm for dlog
+    // we run the full loop to avoid timing attack
     pub fn decrypt_segment(
         DE: &Helgamal,
         G: &GE,
         private_key: &FE,
         segment_size: &usize,
     ) -> Result<FE, Errors> {
-        let yE = DE.E.clone() * private_key;
-        let D_minus_yE = DE.D.sub_point(&yE.get_element());
-        // TODO: make bound bigger then 32
-        let limit = 2u32.pow(segment_size.clone() as u32);
         let mut result = Err(ErrorDecrypting);
-
+        let limit = 2u32.pow(segment_size.clone() as u32);
+        let limit_plus_one = limit + 1u32;
+        let out_of_limit_fe: FE = ECScalar::from(&BigInt::from(limit_plus_one));
+        let out_of_limit_ge: GE = G.clone() * &out_of_limit_fe;
+        let yE = DE.E.clone() * private_key;
+        // handling 0 segment
+        let mut D_minus_yE: GE = out_of_limit_ge;
+        if yE.get_element() == DE.D.clone().get_element() {
+            result = Ok(ECScalar::zero())
+        }
+        else{
+            D_minus_yE = DE.D.sub_point(&yE.get_element());
+        }
+        // TODO: make bound bigger then 32
         let mut test_fe: FE = ECScalar::from(&BigInt::one());
         let mut test_ge: GE = G.clone() * &test_fe;
         for i in 1..limit {
@@ -142,9 +163,10 @@ impl Msegmentation {
                 result = Ok(test_fe.clone());
             }
             test_fe = ECScalar::from(&BigInt::from(i));
-            test_ge = G.clone() * &test_fe;
+            test_ge = G * &test_fe;
         }
         result
+
     }
 
     pub fn decrypt(
@@ -160,7 +182,6 @@ impl Msegmentation {
                         .expect("error decrypting");
                 result
             }).collect::<Vec<FE>>();
-
         Msegmentation::assemble_fe(&vec_secret, &segment_size)
     }
 }
