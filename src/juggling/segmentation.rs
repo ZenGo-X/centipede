@@ -37,8 +37,10 @@ impl Msegmentation {
         let segment_k_bn_rotated =
             BigInt::shr(segment_k_bn, (k * segment_size.clone() as u8) as usize);
         // println!("test = {:?}", test.to_str_radix(16));
-        if segment_k_bn_rotated == BigInt::zero(){ECScalar::zero()} else{
-        ECScalar::from(&segment_k_bn_rotated)
+        if segment_k_bn_rotated == BigInt::zero() {
+            ECScalar::zero()
+        } else {
+            ECScalar::from(&segment_k_bn_rotated)
         }
     }
     //returns r_k,{D_k,E_k}
@@ -53,17 +55,14 @@ impl Msegmentation {
         let segment_k = Msegmentation::get_segment_k(secret, segment_size, k);
         let E_k = G * random;
         let r_kY = pub_ke_y * random;
-        if segment_k == ECScalar::zero(){
+        if segment_k == ECScalar::zero() {
             let D_k = r_kY;
             Helgamal { D: D_k, E: E_k }
-        }
-        else{
+        } else {
             let x_kG = G * &segment_k;
             let D_k = r_kY + x_kG;
             Helgamal { D: D_k, E: E_k }
         }
-
-
     }
 
     // TODO: find a way using generics to combine the following two fn's
@@ -75,12 +74,14 @@ impl Msegmentation {
             .iter()
             .zip(0..segments_2n.len())
             .fold(seg1, |acc, x| {
-                if x.0.clone() == FE::zero() {acc} else{
-                let two_to_the_n = two.pow(segment_size.clone() as u32);
-                let two_to_the_n_shifted = two_to_the_n.shl(x.1 * segment_size);
-                let two_to_the_n_shifted_fe: FE = ECScalar::from(&two_to_the_n_shifted);
-                let shifted_segment = x.0.clone() * two_to_the_n_shifted_fe;
-                acc + shifted_segment
+                if x.0.clone() == FE::zero() {
+                    acc
+                } else {
+                    let two_to_the_n = two.pow(segment_size.clone() as u32);
+                    let two_to_the_n_shifted = two_to_the_n.shl(x.1 * segment_size);
+                    let two_to_the_n_shifted_fe: FE = ECScalar::from(&two_to_the_n_shifted);
+                    let shifted_segment = x.0.clone() * two_to_the_n_shifted_fe;
+                    acc + shifted_segment
                 }
             });
         return seg_sum;
@@ -151,8 +152,7 @@ impl Msegmentation {
         let mut D_minus_yE: GE = out_of_limit_ge;
         if yE.get_element() == DE.D.clone().get_element() {
             result = Ok(ECScalar::zero())
-        }
-        else{
+        } else {
             D_minus_yE = DE.D.sub_point(&yE.get_element());
         }
         // TODO: make bound bigger then 32
@@ -166,7 +166,6 @@ impl Msegmentation {
             test_ge = G * &test_fe;
         }
         result
-
     }
 
     pub fn decrypt(

@@ -32,12 +32,10 @@ impl SecretShare {
         let secret: FE = ECScalar::new_random();
         // make sure no segments are zero segments:
         let secret_bn = secret.to_big_int();
-        let secret:FE  = ECScalar::from(&secret_bn);
+        let secret: FE = ECScalar::from(&secret_bn);
 
         let pubkey = base_point * &secret;
-        return SecretShare { secret, pubkey } ;
-
-
+        return SecretShare { secret, pubkey };
     }
     //based on VRF construction from ellitpic curve: https://eprint.iacr.org/2017/099.pdf
     //TODO: consider to output in str format

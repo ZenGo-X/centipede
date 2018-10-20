@@ -79,15 +79,8 @@ impl Proof {
                 generate_random_point(&Converter::to_vec(&hash_j))
             }).collect::<Vec<GE>>();
 
-        let range_proof = RangeProof::prove(
-            &g_vec,
-            &h_vec,
-            &G,
-            &Y,
-            w.x_vec.clone(),
-            &w.r_vec,
-            n.clone(),
-        );
+        let range_proof =
+            RangeProof::prove(&g_vec, &h_vec, &G, &Y, w.x_vec.clone(), &w.r_vec, n.clone());
 
         // proofs of correct elgamal:
 
