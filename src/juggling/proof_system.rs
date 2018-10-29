@@ -92,6 +92,7 @@ impl Proof {
                 };
                 let delta = hegStatement {
                     G: G.clone(),
+                    H: G.clone(),
                     Y: Y.clone(),
                     D: c.DE[i].D.clone(),
                     E: c.DE[i].E.clone(),
@@ -168,6 +169,7 @@ impl Proof {
             .map(|i| {
                 let delta = hegStatement {
                     G: G.clone(),
+                    H: G.clone(),
                     Y: Y.clone(),
                     D: c.DE[i].D.clone(),
                     E: c.DE[i].E.clone(),
