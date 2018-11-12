@@ -10,9 +10,8 @@ authors = [
 crate-type = ["dylib"]
 
 [dependencies]
-cryptography-utils = { git = "https://github.com/KZen-networks/cryptography-utils" , features =  ["curve25519"]}
+cryptography-utils = { git = "https://github.com/KZen-networks/cryptography-utils" , features =  ["curvesecp256k1"]}
 bulletproof = {git ="https://github.com/KZen-networks/bulletproofs"}
-kms = {git ="https://github.com/KZen-networks/kms"}
 
 [patch.crates-io]
 rust-gmp = { version = "0.5.0", features = ["serde_support"], git = "https://github.com/KZen-networks/rust-gmp" }
