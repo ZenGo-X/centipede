@@ -16,8 +16,8 @@ version 3 of the License, or (at your option) any later version.
 */
 
 use cryptography_utils::{FE,GE,BigInt};
-use cryptography_utils::cryptographic_primitives::proofs::sigma_correct_homomorphic_elgamal_encryption_of_dlog::{HomoELGamalDlogProof,hegdWitness,hegdStatement};
-use cryptography_utils::cryptographic_primitives::proofs::sigma_correct_homomrphic_elgamal_enc::{HomoELGamalProof,hegWitness,hegStatement};
+use cryptography_utils::cryptographic_primitives::proofs::sigma_correct_homomorphic_elgamal_encryption_of_dlog::{HomoELGamalDlogProof,HomoElGamalDlogWitness,HomoElGamalDlogStatement};
+use cryptography_utils::cryptographic_primitives::proofs::sigma_correct_homomrphic_elgamal_enc::{HomoELGamalProof,HomoElGamalWitness,HomoElGamalStatement};
 use cryptography_utils::cryptographic_primitives::hashing::hash_sha512::HSha512;
 use cryptography_utils::cryptographic_primitives::hashing::traits::*;
 use cryptography_utils::arithmetic::traits::Converter;
@@ -86,11 +86,11 @@ impl Proof {
 
         let elgamal_proofs = (0..num_segments)
             .map(|i| {
-                let w = hegWitness {
+                let w = HomoElGamalWitness {
                     r: w.r_vec[i].clone(),
                     x: w.x_vec[i].clone(),
                 };
-                let delta = hegStatement {
+                let delta = HomoElGamalStatement {
                     G: G.clone(),
                     H: G.clone(),
                     Y: Y.clone(),
@@ -108,14 +108,14 @@ impl Proof {
         let sum_r = Msegmentation::assemble_fe(&w.r_vec, segment_size);
         let sum_x = Msegmentation::assemble_fe(&w.x_vec, segment_size);
         let Q = G.clone() * &sum_x;
-        let delta = hegdStatement {
+        let delta = HomoElGamalDlogStatement {
             G: G.clone(),
             Y: Y.clone(),
             Q,
             D: sum_D,
             E: sum_E,
         };
-        let w = hegdWitness { r: sum_r, x: sum_x };
+        let w = HomoElGamalDlogWitness { r: sum_r, x: sum_x };
         let elgamal_dlog_proof = HomoELGamalDlogProof::prove(&w, &delta);
 
         Proof {
@@ -167,7 +167,7 @@ impl Proof {
 
         let elgamal_proofs_ver = (0..num_segments)
             .map(|i| {
-                let delta = hegStatement {
+                let delta = HomoElGamalStatement {
                     G: G.clone(),
                     H: G.clone(),
                     Y: Y.clone(),
@@ -181,7 +181,7 @@ impl Proof {
         let sum_D = Msegmentation::assemble_ge(&D_vec, segment_size);
         let sum_E = Msegmentation::assemble_ge(&E_vec, segment_size);
 
-        let delta = hegdStatement {
+        let delta = HomoElGamalDlogStatement {
             G: G.clone(),
             Y: Y.clone(),
             Q: Q.clone(),
@@ -217,6 +217,8 @@ mod tests {
         let (segments, encryptions) =
             Msegmentation::to_encrypted_segments(&x.secret, &segment_size, 32, &Y, &G);
         let secret_new = Msegmentation::assemble_fe(&segments.x_vec, &segment_size);
+        println!("{:?}", x.secret.get_element());
+        println!("{:?}", secret_new.get_element());
         let secret_decrypted = Msegmentation::decrypt(&encryptions, &G, &y, &segment_size);
 
         assert_eq!(x.secret.get_element(), secret_new.get_element());
@@ -226,6 +228,7 @@ mod tests {
         let result = proof.verify(&encryptions, &G, &Y, &Q, &segment_size);
         assert!(result.is_ok());
     }
+
 
     #[test]
     #[should_panic]

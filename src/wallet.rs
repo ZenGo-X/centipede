@@ -30,9 +30,7 @@ impl SecretShare {
     pub fn generate() -> SecretShare {
         let base_point: GE = ECPoint::generator();
         let secret: FE = ECScalar::new_random();
-        // make sure no segments are zero segments:
-        let secret_bn = secret.to_big_int();
-        let secret: FE = ECScalar::from(&secret_bn);
+
 
         let pubkey = base_point * &secret;
         return SecretShare { secret, pubkey };

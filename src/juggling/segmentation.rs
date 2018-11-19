@@ -159,11 +159,11 @@ impl Msegmentation {
         let mut test_fe: FE = ECScalar::from(&BigInt::one());
         let mut test_ge: GE = G.clone() * &test_fe;
         for i in 1..limit {
+            test_fe = ECScalar::from(&BigInt::from(i));
+            test_ge = G * &test_fe;
             if test_ge.get_element() == D_minus_yE.get_element() {
                 result = Ok(test_fe.clone());
             }
-            test_fe = ECScalar::from(&BigInt::from(i));
-            test_ge = G * &test_fe;
         }
         result
     }
@@ -179,6 +179,7 @@ impl Msegmentation {
                 let result =
                     Msegmentation::decrypt_segment(&DE_vec.DE[i], G, private_key, segment_size)
                         .expect("error decrypting");
+                println!("{:?}", result.clone());
                 result
             }).collect::<Vec<FE>>();
         Msegmentation::assemble_fe(&vec_secret, &segment_size)
