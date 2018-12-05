@@ -17,7 +17,7 @@ version 3 of the License, or (at your option) any later version.
 pub mod juggling;
 pub mod wallet;
 extern crate bulletproof;
-extern crate cryptography_utils;
+extern crate curv;
 
 #[derive(Copy, PartialEq, Eq, Clone, Debug)]
 pub enum Errors {

@@ -15,8 +15,8 @@ version 3 of the License, or (at your option) any later version.
 @license GPL-3.0+ <https://github.com/KZen-networks/centipede/blob/master/LICENSE>
 */
 
-use cryptography_utils::elliptic::curves::traits::*;
-use cryptography_utils::{BigInt, FE, GE};
+use curv::elliptic::curves::traits::*;
+use curv::{BigInt, FE, GE};
 use juggling::proof_system::{Helgamal, Helgamalsegmented, Witness};
 use std::ops::{Shl, Shr};
 use Errors::{self, ErrorDecrypting};
