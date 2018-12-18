@@ -19,6 +19,10 @@ pub mod wallet;
 extern crate bulletproof;
 extern crate curv;
 
+#[macro_use]
+extern crate serde_derive;
+extern crate serde;
+
 #[derive(Copy, PartialEq, Eq, Clone, Debug)]
 pub enum Errors {
     ErrorDecrypting,

@@ -25,15 +25,18 @@ use bulletproof::proofs::range_proof::{RangeProof,generate_random_point};
 use juggling::segmentation::Msegmentation;
 use Errors::{self, ErrorProving};
 
+#[derive(Serialize, Deserialize)]
 pub struct Helgamal {
     pub D: GE,
     pub E: GE,
 }
 
+#[derive(Serialize, Deserialize)]
 pub struct Helgamalsegmented {
     pub DE: Vec<Helgamal>,
 }
 
+#[derive(Serialize, Deserialize)]
 pub struct Witness {
     pub x_vec: Vec<FE>,
     pub r_vec: Vec<FE>,

@@ -12,6 +12,8 @@ crate-type = ["lib"]
 [dependencies]
 curv = { git = "https://github.com/KZen-networks/curv" , features =  ["curvesecp256k1"]}
 bulletproof = {git ="https://github.com/KZen-networks/bulletproofs"}
+serde_derive = "1.0"
+serde = "1.0"
 
 [patch.crates-io]
 rust-gmp = { version = "0.5.0", features = ["serde_support"], git = "https://github.com/KZen-networks/rust-gmp" }
