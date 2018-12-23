@@ -73,7 +73,8 @@ impl Proof {
                 let kzen_label_i = BigInt::from(i as u32) + &kzen_label;
                 let hash_i = HSha512::create_hash(&[&kzen_label_i]);
                 generate_random_point(&Converter::to_vec(&hash_i))
-            }).collect::<Vec<GE>>();
+            })
+            .collect::<Vec<GE>>();
 
         // can run in parallel to g_vec:
         let h_vec = (0..nm)
@@ -81,7 +82,8 @@ impl Proof {
                 let kzen_label_j = BigInt::from(n as u32) + BigInt::from(i as u32) + &kzen_label;
                 let hash_j = HSha512::create_hash(&[&kzen_label_j]);
                 generate_random_point(&Converter::to_vec(&hash_j))
-            }).collect::<Vec<GE>>();
+            })
+            .collect::<Vec<GE>>();
 
         let range_proof =
             RangeProof::prove(&g_vec, &h_vec, &G, &Y, w.x_vec.clone(), &w.r_vec, n.clone());
@@ -102,7 +104,8 @@ impl Proof {
                     E: c.DE[i].E.clone(),
                 };
                 HomoELGamalProof::prove(&w, &delta)
-            }).collect::<Vec<HomoELGamalProof>>();
+            })
+            .collect::<Vec<HomoELGamalProof>>();
 
         // proof of correct ElGamal DLog
         let D_vec: Vec<GE> = (0..num_segments).map(|i| c.DE[i].D.clone()).collect();
@@ -153,7 +156,8 @@ impl Proof {
                 let kzen_label_i = BigInt::from(i as u32) + &kzen_label;
                 let hash_i = HSha512::create_hash(&[&kzen_label_i]);
                 generate_random_point(&Converter::to_vec(&hash_i))
-            }).collect::<Vec<GE>>();
+            })
+            .collect::<Vec<GE>>();
 
         // can run in parallel to g_vec:
         let h_vec = (0..nm)
@@ -161,7 +165,8 @@ impl Proof {
                 let kzen_label_j = BigInt::from(n as u32) + BigInt::from(i as u32) + &kzen_label;
                 let hash_j = HSha512::create_hash(&[&kzen_label_j]);
                 generate_random_point(&Converter::to_vec(&hash_j))
-            }).collect::<Vec<GE>>();
+            })
+            .collect::<Vec<GE>>();
 
         let D_vec: Vec<GE> = (0..num_segments).map(|i| c.DE[i].D.clone()).collect();
         let bp_ver = self
@@ -179,7 +184,8 @@ impl Proof {
                     E: c.DE[i].E.clone(),
                 };
                 self.elgamal_enc[i].verify(&delta).is_ok()
-            }).collect::<Vec<bool>>();
+            })
+            .collect::<Vec<bool>>();
 
         let E_vec: Vec<GE> = (0..num_segments).map(|i| c.DE[i].E.clone()).collect();
         let sum_D = Msegmentation::assemble_ge(&D_vec, segment_size);
@@ -230,7 +236,6 @@ mod tests {
         let result = proof.verify(&encryptions, &G, &Y, &Q, &segment_size);
         assert!(result.is_ok());
     }
-
 
     #[test]
     #[should_panic]
