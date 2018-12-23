@@ -42,6 +42,7 @@ pub struct Witness {
     pub r_vec: Vec<FE>,
 }
 
+#[derive(Serialize, Deserialize)]
 pub struct Proof {
     pub bulletproof: RangeProof,
     pub elgamal_enc: Vec<HomoELGamalProof>,
