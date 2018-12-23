@@ -20,6 +20,7 @@ use curv::{BigInt, FE, GE};
 use juggling::proof_system::{Helgamal, Helgamalsegmented, Witness};
 use std::ops::{Shl, Shr};
 use Errors::{self, ErrorDecrypting};
+use rayon::prelude::*;
 
 pub struct Msegmentation;
 
@@ -115,6 +116,7 @@ impl Msegmentation {
             .map(|_| ECScalar::new_random())
             .collect::<Vec<FE>>();
         let segmented_enc = (0..num_of_segments)
+            .into_par_iter()
             .map(|i| {
                 //  let segment_i = mSegmentation::get_segment_k(secret,segment_size,i as u8);
                 Msegmentation::encrypt_segment_k(
@@ -135,35 +137,36 @@ impl Msegmentation {
     }
 
     //TODO: implement a more advance algorithm for dlog
-    // we run the full loop to avoid timing attack
     pub fn decrypt_segment(
         DE: &Helgamal,
         G: &GE,
         private_key: &FE,
-        segment_size: &usize,
+        limit: &u32,
+        table: &[GE],
     ) -> Result<FE, Errors> {
-        let mut result = Err(ErrorDecrypting);
-        let limit = 2u32.pow(segment_size.clone() as u32);
-        let limit_plus_one = limit + 1u32;
+        let mut result = None;
+
+        let limit_plus_one = limit.clone() + 1u32;
         let out_of_limit_fe: FE = ECScalar::from(&BigInt::from(limit_plus_one));
         let out_of_limit_ge: GE = G.clone() * &out_of_limit_fe;
         let yE = DE.E.clone() * private_key;
         // handling 0 segment
         let mut D_minus_yE: GE = out_of_limit_ge;
         if yE.get_element() == DE.D.clone().get_element() {
-            result = Ok(ECScalar::zero())
+            result = Some(());
         } else {
             D_minus_yE = DE.D.sub_point(&yE.get_element());
         }
         // TODO: make bound bigger then 32
-        for i in 1..limit {
-            let test_fe = ECScalar::from(&BigInt::from(i));
-            let test_ge = G * &test_fe;
-            if test_ge.get_element() == D_minus_yE.get_element() {
-                result = Ok(test_fe.clone());
-            }
+        let mut table_iter = table.iter().enumerate();
+        // find is short-circuting //TODO: counter measure against side channel attacks
+        let matched_value_index = table_iter.find(| &x| x.1 == &D_minus_yE);
+        match matched_value_index{
+            Some(x) => {
+                Ok(ECScalar::from(&BigInt::from(x.0 as u32 + 1)))
+            },
+            None => return if result.is_some() { Ok(ECScalar::zero()) } else { Err(ErrorDecrypting) }
         }
-        result
     }
 
     pub fn decrypt(
@@ -172,10 +175,16 @@ impl Msegmentation {
         private_key: &FE,
         segment_size: &usize,
     ) -> FE {
+        let limit = 2u32.pow(segment_size.clone() as u32);
+        let test_ge_table = (1..limit).into_par_iter().map(|i|{
+            let test_fe = ECScalar::from(&BigInt::from(i));
+            G * &test_fe
+        }).collect::<Vec<GE>>();
         let vec_secret = (0..DE_vec.DE.len())
+            .into_par_iter()
             .map(|i| {
                 let result =
-                    Msegmentation::decrypt_segment(&DE_vec.DE[i], G, private_key, segment_size)
+                    Msegmentation::decrypt_segment(&DE_vec.DE[i], G, private_key, &limit, &test_ge_table)
                         .expect("error decrypting");
                 result
             }).collect::<Vec<FE>>();

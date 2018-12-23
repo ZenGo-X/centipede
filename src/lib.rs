@@ -18,6 +18,7 @@ pub mod juggling;
 pub mod wallet;
 extern crate bulletproof;
 extern crate curv;
+extern crate rayon;
 
 #[macro_use]
 extern crate serde_derive;
