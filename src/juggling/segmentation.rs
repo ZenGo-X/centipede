@@ -153,7 +153,7 @@ impl Msegmentation {
         let yE = DE.E.clone() * private_key;
         // handling 0 segment
         let mut D_minus_yE: GE = out_of_limit_ge;
-        if yE.get_element() == DE.D.clone().get_element() {
+        if yE == DE.D.clone() {
             result = Some(());
         } else {
             D_minus_yE = DE.D.sub_point(&yE.get_element());
