@@ -11,7 +11,7 @@ crate-type = ["lib"]
 
 [dependencies]
 curv = { git = "https://github.com/KZen-networks/curv" , branch = "des", features =  ["curvesecp256k1"]}
-bulletproof = {git ="https://github.com/KZen-networks/bulletproofs"}
+bulletproof = {git ="https://github.com/KZen-networks/bulletproofs", branch = "des"}
 serde_derive = "1.0"
 serde = "1.0"
 rayon = "1.0.3"
