@@ -14,7 +14,7 @@ version 3 of the License, or (at your option) any later version.
 
 @license GPL-3.0+ <https://github.com/KZen-networks/centipede/blob/master/LICENSE>
 */
-
+const SECRETBITS: usize = 256;
 use curv::elliptic::curves::traits::*;
 use curv::{BigInt, FE, GE};
 use juggling::proof_system::{Helgamal, Helgamalsegmented, Witness};
@@ -28,7 +28,7 @@ impl Msegmentation {
     pub fn get_segment_k(secret: &FE, segment_size: &usize, k: u8) -> FE {
         let ss_bn = secret.to_big_int();
         let segment_size_u32 = segment_size.clone() as u32;
-        let msb = segment_size_u32 * (k + 1) as u32;
+        let msb = segment_size_u32 * (k as u32 + 1);
         let lsb = segment_size_u32 * k as u32;
         let two_bn = BigInt::from(2);
         let max = BigInt::pow(&two_bn, msb) - BigInt::from(1);
@@ -112,6 +112,7 @@ impl Msegmentation {
         pub_ke_y: &GE,
         G: &GE,
     ) -> (Witness, Helgamalsegmented) {
+        assert_eq!(*segment_size * num_of_segments, SECRETBITS);
         let r_vec = (0..num_of_segments)
             .map(|_| ECScalar::new_random())
             .collect::<Vec<FE>>();
