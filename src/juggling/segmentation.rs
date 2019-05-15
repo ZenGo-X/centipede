@@ -180,7 +180,7 @@ impl Msegmentation {
         G: &GE,
         private_key: &FE,
         segment_size: &usize,
-    ) -> FE {
+    ) -> Result<FE, Errors> {
         let limit = 2u32.pow(segment_size.clone() as u32);
         let test_ge_table = (1..limit)
             .into_par_iter()
@@ -198,11 +198,27 @@ impl Msegmentation {
                     private_key,
                     &limit,
                     &test_ge_table,
-                )
-                .expect("error decrypting");
+                );
+                //   .expect("error decrypting");
                 result
             })
+            .collect::<Vec<Result<FE, Errors>>>();
+        let mut flag = true;
+        let vec_secret_unwrap = (0..vec_secret.len())
+            .into_iter()
+            .map(|i| {
+                if vec_secret[i].is_err() {
+                    flag = false
+                }
+                vec_secret[i].unwrap()
+            })
             .collect::<Vec<FE>>();
-        Msegmentation::assemble_fe(&vec_secret, &segment_size)
+        match flag {
+            false => Err(ErrorDecrypting),
+            true => Ok(Msegmentation::assemble_fe(
+                &vec_secret_unwrap,
+                &segment_size,
+            )),
+        }
     }
 }

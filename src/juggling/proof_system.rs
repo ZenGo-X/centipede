@@ -230,7 +230,7 @@ mod tests {
         let secret_decrypted = Msegmentation::decrypt(&encryptions, &G, &y, &segment_size);
 
         assert_eq!(x.secret, secret_new);
-        assert_eq!(x.secret, secret_decrypted);
+        assert_eq!(x.secret, secret_decrypted.unwrap());
 
         let proof = Proof::prove(&segments, &encryptions, &G, &Y, &segment_size);
         let result = proof.verify(&encryptions, &G, &Y, &Q, &segment_size);
@@ -251,7 +251,7 @@ mod tests {
         let secret_new = Msegmentation::assemble_fe(&segments.x_vec, &segment_size);
         let secret_decrypted = Msegmentation::decrypt(&encryptions, &G, &y, &segment_size);
         assert_eq!(x.secret, secret_new);
-        assert_eq!(x.secret, secret_decrypted);
+        assert_eq!(x.secret, secret_decrypted.unwrap());
 
         let proof = Proof::prove(&segments, &encryptions, &G, &Y, &segment_size);
         let result = proof.verify(&encryptions, &G, &Y, &Q, &segment_size);
