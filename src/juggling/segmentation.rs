@@ -208,9 +208,11 @@ impl Msegmentation {
             .into_iter()
             .map(|i| {
                 if vec_secret[i].is_err() {
-                    flag = false
+                    flag = false;
+                    FE::zero()
+                } else {
+                    vec_secret[i].unwrap()
                 }
-                vec_secret[i].unwrap()
             })
             .collect::<Vec<FE>>();
         match flag {
