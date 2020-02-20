@@ -10,8 +10,8 @@ authors = [
 crate-type = ["lib"]
 
 [dependencies]
-curv = { git = "https://github.com/KZen-networks/curv", features =  ["ec_secp256k1"] ,tag = "v0.2.4"}
-bulletproof = {git = "https://github.com/KZen-networks/bulletproofs", tag = "v0.2.3"}
+curv = {git = "https://github.com/KZen-networks/curv", features =  ["ec_secp256r1"], branch = "feature/p256"}
+bulletproof = {git = "https://github.com/KZen-networks/bulletproofs", branch = "feature/p256"}
 serde_derive = "1.0"
 serde = "1.0"
 rayon = "1.0.3"

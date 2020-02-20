@@ -218,22 +218,36 @@ mod tests {
 
     #[test]
     fn test_varifiable_encryption() {
+        println!("test_varifiable_encryption #1");
         let segment_size = 8;
+        println!("test_varifiable_encryption #2");
         let y: FE = ECScalar::new_random();
+        println!("test_varifiable_encryption #3");
         let G: GE = ECPoint::generator();
+        println!("test_varifiable_encryption #4");
         let Y = G.clone() * &y;
+        println!("test_varifiable_encryption #5");
         let x = SecretShare::generate();
+        println!("test_varifiable_encryption #6");
         let Q = G.clone() * &x.secret;
+        println!("test_varifiable_encryption #7");
         let (segments, encryptions) =
             Msegmentation::to_encrypted_segments(&x.secret, &segment_size, 32, &Y, &G);
+        println!("test_varifiable_encryption #8");
         let secret_new = Msegmentation::assemble_fe(&segments.x_vec, &segment_size);
+        println!("test_varifiable_encryption #9");
         let secret_decrypted = Msegmentation::decrypt(&encryptions, &G, &y, &segment_size);
+        println!("test_varifiable_encryption #10");
 
         assert_eq!(x.secret, secret_new);
+        println!("test_varifiable_encryption #11");
         assert_eq!(x.secret, secret_decrypted.unwrap());
+        println!("test_varifiable_encryption #12");
 
         let proof = Proof::prove(&segments, &encryptions, &G, &Y, &segment_size);
+        println!("test_varifiable_encryption #13");
         let result = proof.verify(&encryptions, &G, &Y, &Q, &segment_size);
+        println!("test_varifiable_encryption #14, result = {:?}", result);
         assert!(result.is_ok());
     }
 
