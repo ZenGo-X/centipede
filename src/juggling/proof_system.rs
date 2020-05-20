@@ -208,6 +208,50 @@ impl Proof {
     }
 }
 
+#[derive(Serialize, Deserialize)]
+pub struct SegmentsProof {
+    pub bulletproof: RangeProof,
+    pub elgamal_enc_dlog: HomoELGamalDlogProof,
+    pub E: GE,
+    pub D_vec: Vec<GE>,
+}
+
+impl SegmentsProof {
+
+    pub fn prove(
+        w: &Witness,
+        c: &Helgamalsegmented,
+        G: &GE,
+        Y: &GE,
+        segment_size: usize,
+    ) -> (SegmentsProof, Vec<HomoELGamalProof>) {
+
+    }
+
+    pub fn verify_initial(
+        &self,
+        G: &GE,
+        Y: &GE,
+        Q: &GE,
+        segment_size: usize,
+    ) -> Result<(), Errors> {
+
+    }
+
+    pub fn verify_segment(
+        &self,
+        i: usize,
+        E_i: &GE,
+        elgamal_proof_of_correct_enc: &HomoELGamalProof,
+        G: &GE,
+        Y: &GE,
+        Q: &GE,
+        segment_size: usize,
+    ) -> Result<(), Errors> {
+
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use curv::elliptic::curves::traits::*;
@@ -258,4 +302,27 @@ mod tests {
         assert!(result.is_ok());
     }
 
+    #[test]
+    fn test_varifiable_encryption_segment_by_segment() {
+        let segment_size = 8;
+        let y: FE = ECScalar::new_random();
+        let G: GE = ECPoint::generator();
+        let Y = G.clone() * &y;
+        let x = SecretShare::generate();
+        let Q = G.clone() * &x.secret + G.clone();
+        let (segments, encryptions) =
+            Msegmentation::to_encrypted_segments(&x.secret, &segment_size, 32, &Y, &G);
+
+        // initial proof
+        let (proof, elgamal_proofs_of_correct_enc) = SegmentsProof::prove(&segments, &encryptions, &G, &Y, segment_size);
+
+        // initial verify
+        proof.verify_initial(&G, &Y, &Q, segment_size);
+
+        // verify segment by segment
+        for i in 0..encryptions.DE.len() {
+            let result = proof.verify_segment(i, &encryptions.DE[i].E, &elgamal_proofs_of_correct_enc[i], &G, &Y, &Q, segment_size);
+            assert!(result.is_ok());
+        }
+    }
 }
