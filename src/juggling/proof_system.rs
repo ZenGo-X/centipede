@@ -24,6 +24,11 @@ use curv::arithmetic::traits::Converter;
 use bulletproof::proofs::range_proof::{RangeProof,generate_random_point};
 use juggling::segmentation::Msegmentation;
 use Errors::{self, ErrorProving};
+use grad_release::FirstMessage;
+use ::Errors::ErrorFirstMessage;
+use grad_release::SegmentProof;
+use ::Errors::ErrorSegmentProof;
+use curv::elliptic::curves::traits::ECPoint;
 
 #[derive(Serialize, Deserialize)]
 pub struct Helgamal {
@@ -206,6 +211,89 @@ impl Proof {
             Err(ErrorProving)
         }
     }
+
+    pub fn verify_first_message(first_message: &FirstMessage) -> Result<(), Errors> {
+        // bulletproofs:
+        let num_segments = first_message.D_vec.len();
+        // bit range
+        let n = first_message.segment_size.clone();
+        // batch size
+        let m = num_segments;
+        let nm = n * m;
+        // some seed for generating g and h vectors
+        let KZen: &[u8] = &[75, 90, 101, 110];
+        let kzen_label = BigInt::from(KZen);
+
+        let g_vec = (0..nm)
+            .map(|i| {
+                let kzen_label_i = BigInt::from(i as u32) + &kzen_label;
+                let hash_i = HSha512::create_hash(&[&kzen_label_i]);
+                generate_random_point(&Converter::to_vec(&hash_i))
+            })
+            .collect::<Vec<GE>>();
+
+        let Y = GE::generator() * &first_message.y;
+        // can run in parallel to g_vec:
+        let h_vec = (0..nm)
+            .map(|i| {
+                let kzen_label_j = BigInt::from(n as u32) + BigInt::from(i as u32) + &kzen_label;
+                let hash_j = HSha512::create_hash(&[&kzen_label_j]);
+                generate_random_point(&Converter::to_vec(&hash_j))
+            })
+            .collect::<Vec<GE>>();
+
+        let D_vec: Vec<GE> = (0..num_segments).map(|i| first_message.D_vec[i]).collect();
+        let bp_ver = first_message
+            .range_proof
+            .verify(
+                &g_vec,
+                &h_vec,
+                &GE::generator(),
+                &Y,
+                &first_message.D_vec,
+                first_message.segment_size.clone(),
+            )
+            .is_ok();
+
+        let sum_D = Msegmentation::assemble_ge(&D_vec, &first_message.segment_size);
+        let sum_E = first_message.E;
+
+        let delta = HomoElGamalDlogStatement {
+            G: GE::generator(),
+            Y,
+            Q: first_message.Q,
+            D: sum_D,
+            E: sum_E,
+        };
+
+        let elgamal_dlog_proof_ver = first_message.dlog_proof.verify(&delta).is_ok();
+        if bp_ver && elgamal_dlog_proof_ver {
+            Ok(())
+        } else {
+            Err(ErrorFirstMessage)
+        }
+    }
+
+    pub fn verify_segment(
+        first_message: &FirstMessage,
+        segment: &SegmentProof,
+    ) -> Result<(), Errors> {
+        let delta = HomoElGamalStatement {
+            G: GE::generator(),
+            H: GE::generator(),
+            Y: GE::generator() * &first_message.y,
+            D: first_message.D_vec[segment.k],
+            E: segment.E_k,
+        };
+
+        let elgamal_proof = segment.correct_enc_proof.verify(&delta).is_ok();
+
+        if elgamal_proof {
+            Ok(())
+        } else {
+            Err(ErrorSegmentProof)
+        }
+    }
 }
 
 #[cfg(test)]
@@ -257,5 +345,4 @@ mod tests {
         let result = proof.verify(&encryptions, &G, &Y, &Q, &segment_size);
         assert!(result.is_ok());
     }
-
 }

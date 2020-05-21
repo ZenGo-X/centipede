@@ -72,5 +72,4 @@ mod tests {
         let randmoness_eth = x.generate_randomness(&label_eth);
         assert_ne!(randmoness_btc, randmoness_eth)
     }
-
 }
