@@ -212,8 +212,8 @@ impl Proof {
 pub struct SegmentsProof {
     pub bulletproof: RangeProof,
     pub elgamal_enc_dlog: HomoELGamalDlogProof,
-    pub E: GE,
     pub D_vec: Vec<GE>,
+    pub sum_E: GE,
 }
 
 impl SegmentsProof {
@@ -223,9 +223,28 @@ impl SegmentsProof {
         c: &Helgamalsegmented,
         G: &GE,
         Y: &GE,
-        segment_size: usize,
+        &segment_size: usize,
     ) -> (SegmentsProof, Vec<HomoELGamalProof>) {
+        let proof = Proof::prove(w, c, G, Y, segment_size);
+        let D_vec = c.DE
+            .into_iter()
+            .map(|DE| DE.D)
+            .collect::<Vec<GE>>();
+        let E_vec = c.DE
+            .into_iter()
+            .map(|DE| DE.E)
+            .collect::<Vec<GE>>();
+        let sum_E = Msegmentation::assemble_ge(&E_vec, segment_size);
 
+        (
+            SegmentsProof {
+                bulletproof: proof.bulletproof,
+                elgamal_enc_dlog: proof.elgamal_enc_dlog,
+                D_vec,
+                sum_E,
+            },
+            proof.elgamal_enc
+        )
     }
 
     pub fn verify_initial(
@@ -233,9 +252,58 @@ impl SegmentsProof {
         G: &GE,
         Y: &GE,
         Q: &GE,
-        segment_size: usize,
+        &segment_size: usize,
     ) -> Result<(), Errors> {
+        // TODO: handle duplicate code
 
+        // bulletproofs:
+        let num_segments = self.D_vec.len();
+        // bit range
+        let n = segment_size.clone();
+        // batch size
+        let m = num_segments;
+        let nm = n * m;
+        // some seed for generating g and h vectors
+        let KZen: &[u8] = &[75, 90, 101, 110];
+        let kzen_label = BigInt::from(KZen);
+
+        let g_vec = (0..nm)
+            .map(|i| {
+                let kzen_label_i = BigInt::from(i as u32) + &kzen_label;
+                let hash_i = HSha512::create_hash(&[&kzen_label_i]);
+                generate_random_point(&Converter::to_vec(&hash_i))
+            })
+            .collect::<Vec<GE>>();
+
+        // can run in parallel to g_vec:
+        let h_vec = (0..nm)
+            .map(|i| {
+                let kzen_label_j = BigInt::from(n as u32) + BigInt::from(i as u32) + &kzen_label;
+                let hash_j = HSha512::create_hash(&[&kzen_label_j]);
+                generate_random_point(&Converter::to_vec(&hash_j))
+            })
+            .collect::<Vec<GE>>();
+
+        let bp_ver = self
+            .bulletproof
+            .verify(&g_vec, &h_vec, G, Y, &self.D_vec, segment_size.clone())
+            .is_ok();
+
+        let sum_D = Msegmentation::assemble_ge(&self.D_vec, segment_size);
+        let delta = HomoElGamalDlogStatement {
+            G: G.clone(),
+            Y: Y.clone(),
+            Q: Q.clone(),
+            D: sum_D,
+            E: sum_E,
+        };
+
+        let elgamal_dlog_proof_ver = self.elgamal_enc_dlog.verify(&delta).is_ok();
+        if bp_ver && elgamal_dlog_proof_ver {
+            Ok(())
+        } else {
+            Err(ErrorProving)
+        }
     }
 
     pub fn verify_segment(
@@ -245,10 +313,17 @@ impl SegmentsProof {
         elgamal_proof_of_correct_enc: &HomoELGamalProof,
         G: &GE,
         Y: &GE,
-        Q: &GE,
         segment_size: usize,
     ) -> Result<(), Errors> {
-
+        // TODO - is it enough?
+        let delta = HomoElGamalStatement {
+            G: G.clone(),
+            H: G.clone(),
+            Y: Y.clone(),
+            D: self.D_vec[i].clone(),
+            E: E_i.clone(),
+        };
+        self.elgamal_enc[i].verify(&delta)
     }
 }
 
@@ -317,7 +392,13 @@ mod tests {
         let (proof, elgamal_proofs_of_correct_enc) = SegmentsProof::prove(&segments, &encryptions, &G, &Y, segment_size);
 
         // initial verify
-        proof.verify_initial(&G, &Y, &Q, segment_size);
+        let D_vec = encryptions.DE
+            .into_iter()
+            .map(|DE| DE.D)
+            .collect::<Vec<GE>>();
+
+        let initial_result = proof.verify_initial(&D_vec, &G, &Y, &Q, segment_size);
+        assert!(initial_result.is_ok());
 
         // verify segment by segment
         for i in 0..encryptions.DE.len() {
