@@ -212,7 +212,7 @@ impl Proof {
         }
     }
 
-    pub fn verify_first_message(first_message: &FirstMessage) -> Result<(), Errors> {
+    pub fn verify_first_message(first_message: &FirstMessage, encryption_key: &GE) -> Result<(), Errors> {
         // bulletproofs:
         let num_segments = first_message.D_vec.len();
         // bit range
@@ -232,7 +232,7 @@ impl Proof {
             })
             .collect::<Vec<GE>>();
 
-        let Y = GE::generator() * &first_message.y;
+        let Y = *encryption_key;
         // can run in parallel to g_vec:
         let h_vec = (0..nm)
             .map(|i| {
@@ -277,11 +277,12 @@ impl Proof {
     pub fn verify_segment(
         first_message: &FirstMessage,
         segment: &SegmentProof,
+        encryption_key: &GE,
     ) -> Result<(), Errors> {
         let delta = HomoElGamalStatement {
             G: GE::generator(),
             H: GE::generator(),
-            Y: GE::generator() * &first_message.y,
+            Y: *encryption_key,
             D: first_message.D_vec[segment.k],
             E: segment.E_k,
         };
