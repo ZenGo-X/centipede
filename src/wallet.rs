@@ -19,9 +19,9 @@ use curv::arithmetic::traits::{Converter, Modulo};
 use curv::cryptographic_primitives::hashing::hash_sha256::HSha256;
 use curv::cryptographic_primitives::hashing::traits::*;
 use curv::elliptic::curves::traits::*;
-use curv::{BigInt, FE, GE};
-
-pub struct SecretShare {
+use curv::BigInt;
+type GE = curv::elliptic::curves::secp256_k1::GE;
+type FE = curv::elliptic::curves::secp256_k1::FE;pub struct SecretShare {
     pub secret: FE,
     pub pubkey: GE,
 }

@@ -13,7 +13,8 @@ mod bench {
     use centipede::wallet::SecretShare;
     use criterion::Criterion;
     use curv::elliptic::curves::traits::*;
-    use curv::{FE, GE};
+    use curv::elliptic::curves::secp256_k1::GE;
+    use curv::elliptic::curves::secp256_k1::FE;
 
     pub fn full_backup_cycle(c: &mut Criterion) {
         c.bench_function("full_backup_cycle", move |b| {

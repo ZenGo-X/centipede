@@ -4,7 +4,6 @@ use bulletproof::proofs::range_proof::RangeProof;
 use curv::cryptographic_primitives::proofs::sigma_correct_homomorphic_elgamal_enc::HomoELGamalProof;
 use curv::cryptographic_primitives::proofs::sigma_correct_homomorphic_elgamal_encryption_of_dlog::HomoELGamalDlogProof;
 use curv::elliptic::curves::traits::ECPoint;
-use curv::{FE, GE};
 use juggling::proof_system::Helgamal;
 use juggling::proof_system::Helgamalsegmented;
 use juggling::proof_system::Proof;
@@ -12,6 +11,8 @@ use juggling::proof_system::Witness;
 use juggling::segmentation::Msegmentation;
 use Errors;
 use Errors::ErrorSegmentNum;
+type GE = curv::elliptic::curves::secp256_k1::GE;
+type FE = curv::elliptic::curves::secp256_k1::FE;
 
 const SECRET_BIT_LENGTH: usize = 256;
 
@@ -30,14 +31,14 @@ pub struct FirstMessage {
     pub range_proof: RangeProof,
     pub Q: GE,
     pub E: GE,
-    pub dlog_proof: HomoELGamalDlogProof,
+    pub dlog_proof: HomoELGamalDlogProof<curv::elliptic::curves::secp256_k1::GE>,
 }
 
 #[derive(Serialize, Deserialize)]
 pub struct SegmentProof {
     pub k: usize,
     pub E_k: GE,
-    pub correct_enc_proof: HomoELGamalProof,
+    pub correct_enc_proof: HomoELGamalProof<curv::elliptic::curves::secp256_k1::GE>,
 }
 
 impl VEShare {
@@ -130,7 +131,8 @@ impl VEShare {
 
 #[cfg(test)]
 mod tests {
-    use curv::GE;
+    type GE = curv::elliptic::curves::secp256_k1::GE;
+
     use curv::elliptic::curves::traits::*;
     use grad_release::VEShare;
     use grad_release::SECRET_BIT_LENGTH;
