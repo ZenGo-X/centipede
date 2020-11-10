@@ -213,7 +213,10 @@ impl Proof {
         }
     }
 
-    pub fn verify_first_message(first_message: &FirstMessage, encryption_key: &GE) -> Result<(), Errors> {
+    pub fn verify_first_message(
+        first_message: &FirstMessage,
+        encryption_key: &GE,
+    ) -> Result<(), Errors> {
         // bulletproofs:
         let num_segments = first_message.D_vec.len();
         // bit range
@@ -300,9 +303,10 @@ impl Proof {
 
 #[cfg(test)]
 mod tests {
-    use curv::elliptic::curves::traits::*;
+    use curv::elliptic::curves::secp256_k1::FE;
     use curv::elliptic::curves::secp256_k1::GE;
-    use curv::elliptic::curves::secp256_k1::FE;    use juggling::proof_system::*;
+    use curv::elliptic::curves::traits::*;
+    use juggling::proof_system::*;
     use juggling::segmentation::Msegmentation;
     use wallet::SecretShare;
 

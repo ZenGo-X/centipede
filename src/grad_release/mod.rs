@@ -46,8 +46,13 @@ impl VEShare {
         let G: GE = GE::generator();
 
         let num_segments = SECRET_BIT_LENGTH / *segment_size; //TODO: asserty divisible or add segment
-        let (segments, encryptions) =
-            Msegmentation::to_encrypted_segments(secret, &segment_size, num_segments, &encryption_key, &G);
+        let (segments, encryptions) = Msegmentation::to_encrypted_segments(
+            secret,
+            &segment_size,
+            num_segments,
+            &encryption_key,
+            &G,
+        );
         let proof = Proof::prove(&segments, &encryptions, &G, &encryption_key, &segment_size);
 
         // first message:
@@ -152,11 +157,13 @@ mod tests {
         let p2_enc_key = GE::generator() * p2_dec_key;
 
         // p1 sends first message to p2
-        let (p1_first_message, p1_ve_share) = VEShare::create(&secret_p1, &p2_enc_key, &segment_size);
+        let (p1_first_message, p1_ve_share) =
+            VEShare::create(&secret_p1, &p2_enc_key, &segment_size);
         // p2 verify first message
         assert!(VEShare::start_verify(&p1_first_message, &p2_enc_key).is_ok());
         // p2 sends first message to p1
-        let (p2_first_message, p2_ve_share) = VEShare::create(&secret_p2, &p1_enc_key, &segment_size);
+        let (p2_first_message, p2_ve_share) =
+            VEShare::create(&secret_p2, &p1_enc_key, &segment_size);
         // p1 verify first message
         assert!(VEShare::start_verify(&p2_first_message, &p1_enc_key).is_ok());
 
@@ -168,21 +175,27 @@ mod tests {
             // p1 generates k segment
             let p1_seg_k_proof = p1_ve_share.segment_k_proof(&k);
             // p2 verify k segment
-            assert!(VEShare::verify_segment(&p1_first_message, &p1_seg_k_proof, &p2_enc_key).is_ok());
+            assert!(
+                VEShare::verify_segment(&p1_first_message, &p1_seg_k_proof, &p2_enc_key).is_ok()
+            );
             p1_segment_proof_vec.push(p1_seg_k_proof);
             // p2 generates k segment
             let p2_seg_k_proof = p2_ve_share.segment_k_proof(&k);
             // p1 verify k segment
-            assert!(VEShare::verify_segment(&p2_first_message, &p2_seg_k_proof, &p1_enc_key).is_ok());
+            assert!(
+                VEShare::verify_segment(&p2_first_message, &p2_seg_k_proof, &p1_enc_key).is_ok()
+            );
             p2_segment_proof_vec.push(p2_seg_k_proof);
         }
 
         // p1 and p2 can now extract the counter secrets.
         let secret_p1_extracted =
-            VEShare::extract_secret(&p1_first_message, &p1_segment_proof_vec[..], &p2_dec_key).expect("");
+            VEShare::extract_secret(&p1_first_message, &p1_segment_proof_vec[..], &p2_dec_key)
+                .expect("");
         assert_eq!(secret_p1_extracted, secret_p1);
         let secret_p2_extracted =
-            VEShare::extract_secret(&p2_first_message, &p2_segment_proof_vec[..], &p1_dec_key).expect("");
+            VEShare::extract_secret(&p2_first_message, &p2_segment_proof_vec[..], &p1_dec_key)
+                .expect("");
         assert_eq!(secret_p2_extracted, secret_p2);
     }
 }

@@ -12,9 +12,9 @@ mod bench {
     use centipede::juggling::segmentation::Msegmentation;
     use centipede::wallet::SecretShare;
     use criterion::Criterion;
-    use curv::elliptic::curves::traits::*;
-    use curv::elliptic::curves::secp256_k1::GE;
     use curv::elliptic::curves::secp256_k1::FE;
+    use curv::elliptic::curves::secp256_k1::GE;
+    use curv::elliptic::curves::traits::*;
 
     pub fn full_backup_cycle(c: &mut Criterion) {
         c.bench_function("full_backup_cycle", move |b| {
@@ -78,7 +78,6 @@ mod bench {
     create_backup,
     recover_backup
     }
-
 }
 //fn main() {}
 criterion_main!(bench::v_backup);
