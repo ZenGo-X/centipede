@@ -15,8 +15,10 @@ version 3 of the License, or (at your option) any later version.
 @license GPL-3.0+ <https://github.com/KZen-networks/centipede/blob/master/LICENSE>
 */
 const SECRETBITS: usize = 256;
+use curv::elliptic::curves::secp256_k1::FE;
+use curv::elliptic::curves::secp256_k1::GE;
 use curv::elliptic::curves::traits::*;
-use curv::{BigInt, FE, GE};
+use curv::BigInt;
 use juggling::proof_system::{Helgamal, Helgamalsegmented, Witness};
 use rayon::prelude::*;
 use std::ops::{Shl, Shr};

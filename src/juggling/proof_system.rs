@@ -14,8 +14,9 @@ version 3 of the License, or (at your option) any later version.
 
 @license GPL-3.0+ <https://github.com/KZen-networks/centipede/blob/master/LICENSE>
 */
-
-use curv::{FE,GE,BigInt};
+use curv::BigInt;
+use curv::elliptic::curves::secp256_k1::GE;
+use curv::elliptic::curves::secp256_k1::FE;
 use curv::cryptographic_primitives::proofs::sigma_correct_homomorphic_elgamal_encryption_of_dlog::{HomoELGamalDlogProof,HomoElGamalDlogWitness,HomoElGamalDlogStatement};
 use curv::cryptographic_primitives::proofs::sigma_correct_homomorphic_elgamal_enc::{HomoELGamalProof,HomoElGamalWitness,HomoElGamalStatement};
 use curv::cryptographic_primitives::hashing::hash_sha512::HSha512;
@@ -50,16 +51,16 @@ pub struct Witness {
 #[derive(Serialize, Deserialize)]
 pub struct Proof {
     pub bulletproof: RangeProof,
-    pub elgamal_enc: Vec<HomoELGamalProof>,
-    pub elgamal_enc_dlog: HomoELGamalDlogProof,
+    pub elgamal_enc: Vec<HomoELGamalProof<curv::elliptic::curves::secp256_k1::GE>>,
+    pub elgamal_enc_dlog: HomoELGamalDlogProof<curv::elliptic::curves::secp256_k1::GE>,
 }
 
 impl Proof {
     pub fn prove(
         w: &Witness,
         c: &Helgamalsegmented,
-        G: &GE,
-        Y: &GE,
+        G: &curv::elliptic::curves::secp256_k1::GE,
+        Y: &curv::elliptic::curves::secp256_k1::GE,
         segment_size: &usize,
     ) -> Proof {
         // bulletproofs:
@@ -79,7 +80,7 @@ impl Proof {
                 let hash_i = HSha512::create_hash(&[&kzen_label_i]);
                 generate_random_point(&Converter::to_vec(&hash_i))
             })
-            .collect::<Vec<GE>>();
+            .collect::<Vec<_>>();
 
         // can run in parallel to g_vec:
         let h_vec = (0..nm)
@@ -88,10 +89,10 @@ impl Proof {
                 let hash_j = HSha512::create_hash(&[&kzen_label_j]);
                 generate_random_point(&Converter::to_vec(&hash_j))
             })
-            .collect::<Vec<GE>>();
+            .collect::<Vec<_>>();
 
         let range_proof =
-            RangeProof::prove(&g_vec, &h_vec, &G, &Y, w.x_vec.clone(), &w.r_vec, n.clone());
+            RangeProof::prove(&g_vec, &h_vec, G, &Y, w.x_vec.clone(), &w.r_vec, n.clone());
 
         // proofs of correct elgamal:
 
@@ -110,7 +111,7 @@ impl Proof {
                 };
                 HomoELGamalProof::prove(&w, &delta)
             })
-            .collect::<Vec<HomoELGamalProof>>();
+            .collect::<Vec<HomoELGamalProof<GE>>>();
 
         // proof of correct ElGamal DLog
         let D_vec: Vec<GE> = (0..num_segments).map(|i| c.DE[i].D.clone()).collect();
@@ -212,7 +213,10 @@ impl Proof {
         }
     }
 
-    pub fn verify_first_message(first_message: &FirstMessage, encryption_key: &GE) -> Result<(), Errors> {
+    pub fn verify_first_message(
+        first_message: &FirstMessage,
+        encryption_key: &GE,
+    ) -> Result<(), Errors> {
         // bulletproofs:
         let num_segments = first_message.D_vec.len();
         // bit range
@@ -299,8 +303,9 @@ impl Proof {
 
 #[cfg(test)]
 mod tests {
+    use curv::elliptic::curves::secp256_k1::FE;
+    use curv::elliptic::curves::secp256_k1::GE;
     use curv::elliptic::curves::traits::*;
-    use curv::{FE, GE};
     use juggling::proof_system::*;
     use juggling::segmentation::Msegmentation;
     use wallet::SecretShare;
