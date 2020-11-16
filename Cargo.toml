@@ -1,6 +1,6 @@
 [package]
 name = "centipede"
-version = "0.2.6"
+version = "0.2.7"
 authors = [
     "Omer <omer@kzencorp.com>",
     "Gary <gary@kzencorp.com>"
