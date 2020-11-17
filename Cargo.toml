@@ -1,6 +1,6 @@
 [package]
 name = "centipede"
-version = "0.2.7"
+version = "0.2.8"
 authors = [
     "Omer <omer@kzencorp.com>",
     "Gary <gary@kzencorp.com>"
@@ -10,8 +10,8 @@ authors = [
 crate-type = ["lib"]
 
 [dependencies]
-curv = { git = "https://github.com/KZen-networks/curv", tag = "v0.3.2"}
-bulletproof = {git = "https://github.com/KZen-networks/bulletproofs", tag = "v1.1.1"}
+curv = { git = "https://github.com/KZen-networks/curv", tag = "v0.3.4"}
+bulletproof = {git = "https://github.com/KZen-networks/bulletproofs", tag = "v1.1.2"}
 serde_derive = "1.0"
 serde = "1.0"
 rayon = "1.0.3"
