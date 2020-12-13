@@ -15,8 +15,6 @@ version 3 of the License, or (at your option) any later version.
 @license GPL-3.0+ <https://github.com/KZen-networks/centipede/blob/master/LICENSE>
 */
 const SECRETBITS: usize = 256;
-use curv::elliptic::curves::secp256_k1::FE;
-use curv::elliptic::curves::secp256_k1::GE;
 use curv::elliptic::curves::traits::*;
 use curv::BigInt;
 use juggling::proof_system::{Helgamal, Helgamalsegmented, Witness};
@@ -27,7 +25,10 @@ use Errors::{self, ErrorDecrypting};
 pub struct Msegmentation;
 
 impl Msegmentation {
-    pub fn get_segment_k(secret: &FE, segment_size: &usize, k: u8) -> FE {
+    pub fn get_segment_k<S>(secret: &S, segment_size: &usize, k: u8) -> S
+    where
+        S: ECScalar,
+    {
         let ss_bn = secret.to_big_int();
         let segment_size_u32 = segment_size.clone() as u32;
         let msb = segment_size_u32 * (k as u32 + 1);
@@ -47,29 +48,36 @@ impl Msegmentation {
         }
     }
     //returns r_k,{D_k,E_k}
-    pub fn encrypt_segment_k(
-        secret: &FE,
-        random: &FE,
+    pub fn encrypt_segment_k<P>(
+        secret: &P::Scalar,
+        random: &P::Scalar,
         segment_size: &usize,
         k: u8,
-        pub_ke_y: &GE,
-        G: &GE,
-    ) -> Helgamal {
+        pub_ke_y: &P,
+        G: &P,
+    ) -> Helgamal<P>
+    where
+        P: ECPoint + Clone,
+        P::Scalar: Clone + PartialEq,
+    {
         let segment_k = Msegmentation::get_segment_k(secret, segment_size, k);
-        let E_k = G * random;
-        let r_kY = pub_ke_y * random;
+        let E_k = G.clone() * random.clone();
+        let r_kY = pub_ke_y.clone() * random.clone();
         if segment_k == ECScalar::zero() {
             let D_k = r_kY;
             Helgamal { D: D_k, E: E_k }
         } else {
-            let x_kG = G * &segment_k;
+            let x_kG = G.clone() * segment_k.clone();
             let D_k = r_kY + x_kG;
             Helgamal { D: D_k, E: E_k }
         }
     }
 
     // TODO: find a way using generics to combine the following two fn's
-    pub fn assemble_fe(segments: &Vec<FE>, segment_size: &usize) -> FE {
+    pub fn assemble_fe<S>(segments: &Vec<S>, segment_size: &usize) -> S
+    where
+        S: ECScalar + Clone + PartialEq,
+    {
         let two = BigInt::from(2);
         let mut segments_2n = segments.clone();
         let seg1 = segments_2n.remove(0);
@@ -77,20 +85,23 @@ impl Msegmentation {
             .iter()
             .zip(0..segments_2n.len())
             .fold(seg1, |acc, x| {
-                if x.0.clone() == FE::zero() {
+                if x.0.clone() == S::zero() {
                     acc
                 } else {
                     let two_to_the_n = two.pow(segment_size.clone() as u32);
                     let two_to_the_n_shifted = two_to_the_n.shl(x.1 * segment_size);
-                    let two_to_the_n_shifted_fe: FE = ECScalar::from(&two_to_the_n_shifted);
-                    let shifted_segment = x.0.clone() * two_to_the_n_shifted_fe;
+                    let two_to_the_n_shifted_fe: S = ECScalar::from(&two_to_the_n_shifted);
+                    let shifted_segment: S = x.0.clone() * two_to_the_n_shifted_fe;
                     acc + shifted_segment
                 }
             });
         return seg_sum;
     }
 
-    pub fn assemble_ge(segments: &Vec<GE>, segment_size: &usize) -> GE {
+    pub fn assemble_ge<P>(segments: &Vec<P>, segment_size: &usize) -> P
+    where
+        P: ECPoint + Clone,
+    {
         let two = BigInt::from(2);
         let mut segments_2n = segments.clone();
         let seg1 = segments_2n.remove(0);
@@ -100,24 +111,28 @@ impl Msegmentation {
             .fold(seg1, |acc, x| {
                 let two_to_the_n = two.pow(segment_size.clone() as u32);
                 let two_to_the_n_shifted = two_to_the_n.shl(x.1 * segment_size);
-                let two_to_the_n_shifted_fe: FE = ECScalar::from(&two_to_the_n_shifted);
+                let two_to_the_n_shifted_fe: P::Scalar = ECScalar::from(&two_to_the_n_shifted);
                 let shifted_segment = x.0.clone() * two_to_the_n_shifted_fe;
                 acc + shifted_segment
             });
         return seg_sum;
     }
 
-    pub fn to_encrypted_segments(
-        secret: &FE,
+    pub fn to_encrypted_segments<P>(
+        secret: &P::Scalar,
         segment_size: &usize,
         num_of_segments: usize,
-        pub_ke_y: &GE,
-        G: &GE,
-    ) -> (Witness, Helgamalsegmented) {
+        pub_ke_y: &P,
+        G: &P,
+    ) -> (Witness<P::Scalar>, Helgamalsegmented<P>)
+    where
+        P: ECPoint + Clone + Sync + Send,
+        P::Scalar: Clone + PartialEq + Sync,
+    {
         assert_eq!(*segment_size * num_of_segments, SECRETBITS);
         let r_vec = (0..num_of_segments)
             .map(|_| ECScalar::new_random())
-            .collect::<Vec<FE>>();
+            .collect::<Vec<P::Scalar>>();
         let segmented_enc = (0..num_of_segments)
             .into_par_iter()
             .map(|i| {
@@ -131,31 +146,35 @@ impl Msegmentation {
                     G,
                 )
             })
-            .collect::<Vec<Helgamal>>();
+            .collect::<Vec<Helgamal<P>>>();
         let x_vec = (0..num_of_segments)
             .map(|i| Msegmentation::get_segment_k(secret, segment_size, i as u8))
-            .collect::<Vec<FE>>();
+            .collect::<Vec<P::Scalar>>();
         let w = Witness { x_vec, r_vec };
         let heg_segmented = Helgamalsegmented { DE: segmented_enc };
         (w, heg_segmented)
     }
 
     //TODO: implement a more advance algorithm for dlog
-    pub fn decrypt_segment(
-        DE: &Helgamal,
-        G: &GE,
-        private_key: &FE,
+    pub fn decrypt_segment<P>(
+        DE: &Helgamal<P>,
+        G: &P,
+        private_key: &P::Scalar,
         limit: &u32,
-        table: &[GE],
-    ) -> Result<FE, Errors> {
+        table: &[P],
+    ) -> Result<P::Scalar, Errors>
+    where
+        P: ECPoint + Clone,
+        P::Scalar: Clone,
+    {
         let mut result = None;
 
         let limit_plus_one = limit.clone() + 1u32;
-        let out_of_limit_fe: FE = ECScalar::from(&BigInt::from(limit_plus_one));
-        let out_of_limit_ge: GE = G.clone() * &out_of_limit_fe;
-        let yE = DE.E.clone() * private_key;
+        let out_of_limit_fe: P::Scalar = ECScalar::from(&BigInt::from(limit_plus_one));
+        let out_of_limit_ge: P = G.clone() * out_of_limit_fe.clone();
+        let yE = DE.E.clone() * private_key.clone();
         // handling 0 segment
-        let mut D_minus_yE: GE = out_of_limit_ge;
+        let mut D_minus_yE: P = out_of_limit_ge;
         if yE == DE.D.clone() {
             result = Some(());
         } else {
@@ -177,20 +196,24 @@ impl Msegmentation {
         }
     }
 
-    pub fn decrypt(
-        DE_vec: &Helgamalsegmented,
-        G: &GE,
-        private_key: &FE,
+    pub fn decrypt<P>(
+        DE_vec: &Helgamalsegmented<P>,
+        G: &P,
+        private_key: &P::Scalar,
         segment_size: &usize,
-    ) -> Result<FE, Errors> {
+    ) -> Result<P::Scalar, Errors>
+    where
+        P: ECPoint + Clone + Sync + Send,
+        P::Scalar: Clone + PartialEq + Sync + Send,
+    {
         let limit = 2u32.pow(segment_size.clone() as u32);
         let test_ge_table = (1..limit)
             .into_par_iter()
             .map(|i| {
                 let test_fe = ECScalar::from(&BigInt::from(i));
-                G * &test_fe
+                G.clone() * test_fe
             })
-            .collect::<Vec<GE>>();
+            .collect::<Vec<P>>();
         let vec_secret = (0..DE_vec.DE.len())
             .into_par_iter()
             .map(|i| {
@@ -204,19 +227,19 @@ impl Msegmentation {
                 //   .expect("error decrypting");
                 result
             })
-            .collect::<Vec<Result<FE, Errors>>>();
+            .collect::<Vec<Result<P::Scalar, Errors>>>();
         let mut flag = true;
         let vec_secret_unwrap = (0..vec_secret.len())
             .into_iter()
             .map(|i| {
                 if vec_secret[i].is_err() {
                     flag = false;
-                    FE::zero()
+                    <P::Scalar as ECScalar>::zero()
                 } else {
-                    vec_secret[i].unwrap()
+                    vec_secret[i].clone().unwrap()
                 }
             })
-            .collect::<Vec<FE>>();
+            .collect::<Vec<P::Scalar>>();
         match flag {
             false => Err(ErrorDecrypting),
             true => Ok(Msegmentation::assemble_fe(

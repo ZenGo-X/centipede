@@ -11,10 +11,11 @@ crate-type = ["lib"]
 
 [dependencies]
 curv = { git = "https://github.com/survived/curv.git", branch = "expose-testing-macro"}
-bulletproof = {git = "https://github.com/KZen-networks/bulletproofs", tag = "v1.1.2"}
+bulletproof = {git = "https://github.com/survived/bulletproofs", branch = "generic-curv"}
 serde_derive = "1.0"
 serde = "1.0"
 rayon = "1.0.3"
+zeroize = "0.10"
 
 [dev-dependencies]
 criterion = "0.2"
@@ -23,9 +24,6 @@ criterion = "0.2"
 git = "https://github.com/survived/curv.git"
 branch = "expose-testing-macro"
 features = ["testing-utils"]
-
-[patch."https://github.com/survived/curv.git"]
-curv = { path = "../curv" }
 
 [[bench]]
 name = "v_backup"
