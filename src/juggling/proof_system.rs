@@ -15,54 +15,61 @@ version 3 of the License, or (at your option) any later version.
 @license GPL-3.0+ <https://github.com/KZen-networks/centipede/blob/master/LICENSE>
 */
 use curv::BigInt;
-use curv::elliptic::curves::secp256_k1::GE;
-use curv::elliptic::curves::secp256_k1::FE;
 use curv::cryptographic_primitives::proofs::sigma_correct_homomorphic_elgamal_encryption_of_dlog::{HomoELGamalDlogProof,HomoElGamalDlogWitness,HomoElGamalDlogStatement};
 use curv::cryptographic_primitives::proofs::sigma_correct_homomorphic_elgamal_enc::{HomoELGamalProof,HomoElGamalWitness,HomoElGamalStatement};
 use curv::cryptographic_primitives::hashing::hash_sha512::HSha512;
 use curv::cryptographic_primitives::hashing::traits::*;
 use curv::arithmetic::traits::Converter;
-use bulletproof::proofs::range_proof::{RangeProof,generate_random_point};
+use bulletproof::proofs::range_proof::{RangeProof};
+use bulletproof::proofs::utils::derive_point;
 use juggling::segmentation::Msegmentation;
 use Errors::{self, ErrorProving};
 use grad_release::FirstMessage;
 use ::Errors::ErrorFirstMessage;
 use grad_release::SegmentProof;
 use ::Errors::ErrorSegmentProof;
-use curv::elliptic::curves::traits::ECPoint;
+use curv::elliptic::curves::traits::*;
+use serde::{Serialize, Deserialize};
+use zeroize::Zeroize;
 
 #[derive(Serialize, Deserialize)]
-pub struct Helgamal {
-    pub D: GE,
-    pub E: GE,
+pub struct Helgamal<P: ECPoint> {
+    pub D: P,
+    pub E: P,
 }
 
 #[derive(Serialize, Deserialize)]
-pub struct Helgamalsegmented {
-    pub DE: Vec<Helgamal>,
+pub struct Helgamalsegmented<P: ECPoint> {
+    pub DE: Vec<Helgamal<P>>,
 }
 
 #[derive(Serialize, Deserialize)]
-pub struct Witness {
-    pub x_vec: Vec<FE>,
-    pub r_vec: Vec<FE>,
+pub struct Witness<S: ECScalar> {
+    pub x_vec: Vec<S>,
+    pub r_vec: Vec<S>,
 }
 
 #[derive(Serialize, Deserialize)]
-pub struct Proof {
-    pub bulletproof: RangeProof,
-    pub elgamal_enc: Vec<HomoELGamalProof<curv::elliptic::curves::secp256_k1::GE>>,
-    pub elgamal_enc_dlog: HomoELGamalDlogProof<curv::elliptic::curves::secp256_k1::GE>,
+#[serde(bound(serialize = "P: Serialize, P::Scalar: Serialize"))]
+#[serde(bound(deserialize = "P: Deserialize<'de>, P::Scalar: Deserialize<'de>"))]
+pub struct Proof<P: ECPoint> {
+    pub bulletproof: RangeProof<P>,
+    pub elgamal_enc: Vec<HomoELGamalProof<P>>,
+    pub elgamal_enc_dlog: HomoELGamalDlogProof<P>,
 }
 
-impl Proof {
+impl<P> Proof<P>
+where
+    P: ECPoint + Clone + Zeroize,
+    P::Scalar: Clone + PartialEq + Zeroize,
+{
     pub fn prove(
-        w: &Witness,
-        c: &Helgamalsegmented,
-        G: &curv::elliptic::curves::secp256_k1::GE,
-        Y: &curv::elliptic::curves::secp256_k1::GE,
+        w: &Witness<P::Scalar>,
+        c: &Helgamalsegmented<P>,
+        G: &P,
+        Y: &P,
         segment_size: &usize,
-    ) -> Proof {
+    ) -> Proof<P> {
         // bulletproofs:
         let num_segments = w.x_vec.len();
         // bit range
@@ -78,7 +85,7 @@ impl Proof {
             .map(|i| {
                 let kzen_label_i = BigInt::from(i as u32) + &kzen_label;
                 let hash_i = HSha512::create_hash(&[&kzen_label_i]);
-                generate_random_point(&Converter::to_vec(&hash_i))
+                derive_point(&Converter::to_vec(&hash_i))
             })
             .collect::<Vec<_>>();
 
@@ -87,7 +94,7 @@ impl Proof {
             .map(|i| {
                 let kzen_label_j = BigInt::from(n as u32) + BigInt::from(i as u32) + &kzen_label;
                 let hash_j = HSha512::create_hash(&[&kzen_label_j]);
-                generate_random_point(&Converter::to_vec(&hash_j))
+                derive_point(&Converter::to_vec(&hash_j))
             })
             .collect::<Vec<_>>();
 
@@ -109,18 +116,18 @@ impl Proof {
                     D: c.DE[i].D.clone(),
                     E: c.DE[i].E.clone(),
                 };
-                HomoELGamalProof::prove(&w, &delta)
+                HomoELGamalProof::<P>::prove(&w, &delta)
             })
-            .collect::<Vec<HomoELGamalProof<GE>>>();
+            .collect::<Vec<HomoELGamalProof<P>>>();
 
         // proof of correct ElGamal DLog
-        let D_vec: Vec<GE> = (0..num_segments).map(|i| c.DE[i].D.clone()).collect();
-        let E_vec: Vec<GE> = (0..num_segments).map(|i| c.DE[i].E.clone()).collect();
+        let D_vec: Vec<P> = (0..num_segments).map(|i| c.DE[i].D.clone()).collect();
+        let E_vec: Vec<P> = (0..num_segments).map(|i| c.DE[i].E.clone()).collect();
         let sum_D = Msegmentation::assemble_ge(&D_vec, segment_size);
         let sum_E = Msegmentation::assemble_ge(&E_vec, segment_size);
         let sum_r = Msegmentation::assemble_fe(&w.r_vec, segment_size);
         let sum_x = Msegmentation::assemble_fe(&w.x_vec, segment_size);
-        let Q = G.clone() * &sum_x;
+        let Q = G.clone() * sum_x.clone();
         let delta = HomoElGamalDlogStatement {
             G: G.clone(),
             Y: Y.clone(),
@@ -140,10 +147,10 @@ impl Proof {
 
     pub fn verify(
         &self,
-        c: &Helgamalsegmented,
-        G: &GE,
-        Y: &GE,
-        Q: &GE,
+        c: &Helgamalsegmented<P>,
+        G: &P,
+        Y: &P,
+        Q: &P,
         segment_size: &usize,
     ) -> Result<(), Errors> {
         // bulletproofs:
@@ -161,20 +168,20 @@ impl Proof {
             .map(|i| {
                 let kzen_label_i = BigInt::from(i as u32) + &kzen_label;
                 let hash_i = HSha512::create_hash(&[&kzen_label_i]);
-                generate_random_point(&Converter::to_vec(&hash_i))
+                derive_point(&Converter::to_vec(&hash_i))
             })
-            .collect::<Vec<GE>>();
+            .collect::<Vec<P>>();
 
         // can run in parallel to g_vec:
         let h_vec = (0..nm)
             .map(|i| {
                 let kzen_label_j = BigInt::from(n as u32) + BigInt::from(i as u32) + &kzen_label;
                 let hash_j = HSha512::create_hash(&[&kzen_label_j]);
-                generate_random_point(&Converter::to_vec(&hash_j))
+                derive_point(&Converter::to_vec(&hash_j))
             })
-            .collect::<Vec<GE>>();
+            .collect::<Vec<P>>();
 
-        let D_vec: Vec<GE> = (0..num_segments).map(|i| c.DE[i].D.clone()).collect();
+        let D_vec: Vec<P> = (0..num_segments).map(|i| c.DE[i].D.clone()).collect();
         let bp_ver = self
             .bulletproof
             .verify(&g_vec, &h_vec, G, Y, &D_vec, segment_size.clone())
@@ -193,7 +200,7 @@ impl Proof {
             })
             .collect::<Vec<bool>>();
 
-        let E_vec: Vec<GE> = (0..num_segments).map(|i| c.DE[i].E.clone()).collect();
+        let E_vec: Vec<P> = (0..num_segments).map(|i| c.DE[i].E.clone()).collect();
         let sum_D = Msegmentation::assemble_ge(&D_vec, segment_size);
         let sum_E = Msegmentation::assemble_ge(&E_vec, segment_size);
 
@@ -214,8 +221,8 @@ impl Proof {
     }
 
     pub fn verify_first_message(
-        first_message: &FirstMessage,
-        encryption_key: &GE,
+        first_message: &FirstMessage<P>,
+        encryption_key: &P,
     ) -> Result<(), Errors> {
         // bulletproofs:
         let num_segments = first_message.D_vec.len();
@@ -232,27 +239,29 @@ impl Proof {
             .map(|i| {
                 let kzen_label_i = BigInt::from(i as u32) + &kzen_label;
                 let hash_i = HSha512::create_hash(&[&kzen_label_i]);
-                generate_random_point(&Converter::to_vec(&hash_i))
+                derive_point(&Converter::to_vec(&hash_i))
             })
-            .collect::<Vec<GE>>();
+            .collect::<Vec<P>>();
 
-        let Y = *encryption_key;
+        let Y = encryption_key.clone();
         // can run in parallel to g_vec:
         let h_vec = (0..nm)
             .map(|i| {
                 let kzen_label_j = BigInt::from(n as u32) + BigInt::from(i as u32) + &kzen_label;
                 let hash_j = HSha512::create_hash(&[&kzen_label_j]);
-                generate_random_point(&Converter::to_vec(&hash_j))
+                derive_point(&Converter::to_vec(&hash_j))
             })
-            .collect::<Vec<GE>>();
+            .collect::<Vec<P>>();
 
-        let D_vec: Vec<GE> = (0..num_segments).map(|i| first_message.D_vec[i]).collect();
+        let D_vec: Vec<P> = (0..num_segments)
+            .map(|i| first_message.D_vec[i].clone())
+            .collect();
         let bp_ver = first_message
             .range_proof
             .verify(
                 &g_vec,
                 &h_vec,
-                &GE::generator(),
+                &P::generator(),
                 &Y,
                 &first_message.D_vec,
                 first_message.segment_size.clone(),
@@ -260,12 +269,12 @@ impl Proof {
             .is_ok();
 
         let sum_D = Msegmentation::assemble_ge(&D_vec, &first_message.segment_size);
-        let sum_E = first_message.E;
+        let sum_E = first_message.E.clone();
 
         let delta = HomoElGamalDlogStatement {
-            G: GE::generator(),
+            G: P::generator(),
             Y,
-            Q: first_message.Q,
+            Q: first_message.Q.clone(),
             D: sum_D,
             E: sum_E,
         };
@@ -279,16 +288,16 @@ impl Proof {
     }
 
     pub fn verify_segment(
-        first_message: &FirstMessage,
-        segment: &SegmentProof,
-        encryption_key: &GE,
+        first_message: &FirstMessage<P>,
+        segment: &SegmentProof<P>,
+        encryption_key: &P,
     ) -> Result<(), Errors> {
         let delta = HomoElGamalStatement {
-            G: GE::generator(),
-            H: GE::generator(),
-            Y: *encryption_key,
-            D: first_message.D_vec[segment.k],
-            E: segment.E_k,
+            G: P::generator(),
+            H: P::generator(),
+            Y: encryption_key.clone(),
+            D: first_message.D_vec[segment.k].clone(),
+            E: segment.E_k.clone(),
         };
 
         let elgamal_proof = segment.correct_enc_proof.verify(&delta).is_ok();
@@ -303,21 +312,25 @@ impl Proof {
 
 #[cfg(test)]
 mod tests {
-    use curv::elliptic::curves::secp256_k1::FE;
-    use curv::elliptic::curves::secp256_k1::GE;
     use curv::elliptic::curves::traits::*;
+    use curv::test_for_all_curves;
     use juggling::proof_system::*;
     use juggling::segmentation::Msegmentation;
     use wallet::SecretShare;
+    use zeroize::Zeroize;
 
-    #[test]
-    fn test_varifiable_encryption() {
+    test_for_all_curves!(test_verifiable_encryption);
+    fn test_verifiable_encryption<P>()
+    where
+        P: ECPoint + Clone + Zeroize + Sync + Send,
+        P::Scalar: Clone + PartialEq + Zeroize + Sync + Send + std::fmt::Debug,
+    {
         let segment_size = 8;
-        let y: FE = ECScalar::new_random();
-        let G: GE = ECPoint::generator();
-        let Y = G.clone() * &y;
-        let x = SecretShare::generate();
-        let Q = G.clone() * &x.secret;
+        let y: P::Scalar = ECScalar::new_random();
+        let G: P = ECPoint::generator();
+        let Y = G.clone() * y.clone();
+        let x = SecretShare::<P>::generate();
+        let Q = G.clone() * x.secret.clone();
         let (segments, encryptions) =
             Msegmentation::to_encrypted_segments(&x.secret, &segment_size, 32, &Y, &G);
         let secret_new = Msegmentation::assemble_fe(&segments.x_vec, &segment_size);
@@ -331,23 +344,29 @@ mod tests {
         assert!(result.is_ok());
     }
 
-    #[test]
-    #[should_panic]
-    fn test_varifiable_encryption_bad_Q() {
+    test_for_all_curves!(
+        #[should_panic]
+        test_verifiable_encryption_bad_Q
+    );
+    fn test_verifiable_encryption_bad_Q<P: ECPoint>()
+    where
+        P: ECPoint + Clone + Zeroize + Sync + Send,
+        P::Scalar: Clone + PartialEq + Zeroize + Sync + Send + std::fmt::Debug,
+    {
         let segment_size = 8;
-        let y: FE = ECScalar::new_random();
-        let G: GE = ECPoint::generator();
-        let Y = G.clone() * &y;
-        let x = SecretShare::generate();
-        let Q = G.clone() * &x.secret + G.clone();
+        let y: P::Scalar = ECScalar::new_random();
+        let G: P = ECPoint::generator();
+        let Y = G.clone() * y.clone();
+        let x = SecretShare::<P>::generate();
+        let Q = G.clone() * x.secret.clone() + G.clone();
         let (segments, encryptions) =
-            Msegmentation::to_encrypted_segments(&x.secret, &segment_size, 32, &Y, &G);
+            Msegmentation::to_encrypted_segments::<P>(&x.secret, &segment_size, 32, &Y, &G);
         let secret_new = Msegmentation::assemble_fe(&segments.x_vec, &segment_size);
         let secret_decrypted = Msegmentation::decrypt(&encryptions, &G, &y, &segment_size);
         assert_eq!(x.secret, secret_new);
         assert_eq!(x.secret, secret_decrypted.unwrap());
 
-        let proof = Proof::prove(&segments, &encryptions, &G, &Y, &segment_size);
+        let proof = Proof::<P>::prove(&segments, &encryptions, &G, &Y, &segment_size);
         let result = proof.verify(&encryptions, &G, &Y, &Q, &segment_size);
         assert!(result.is_ok());
     }
