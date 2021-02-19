@@ -14,14 +14,18 @@ version 3 of the License, or (at your option) any later version.
 
 @license GPL-3.0+ <https://github.com/KZen-networks/centipede/blob/master/LICENSE>
 */
+
 const SECRETBITS: usize = 256;
-use curv::elliptic::curves::secp256_k1::FE;
-use curv::elliptic::curves::secp256_k1::GE;
+
+use std::ops::{Shl, Shr};
+
+use curv::arithmetic::traits::*;
+use curv::elliptic::curves::secp256_k1::{FE, GE};
 use curv::elliptic::curves::traits::*;
 use curv::BigInt;
 use juggling::proof_system::{Helgamal, Helgamalsegmented, Witness};
 use rayon::prelude::*;
-use std::ops::{Shl, Shr};
+
 use Errors::{self, ErrorDecrypting};
 
 pub struct Msegmentation;
