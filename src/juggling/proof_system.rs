@@ -72,13 +72,13 @@ impl Proof {
         let nm = n * m;
         // some seed for generating g and h vectors
         let KZen: &[u8] = &[75, 90, 101, 110];
-        let kzen_label = BigInt::from(KZen);
+        let kzen_label = BigInt::from_bytes(KZen);
 
         let g_vec = (0..nm)
             .map(|i| {
                 let kzen_label_i = BigInt::from(i as u32) + &kzen_label;
                 let hash_i = HSha512::create_hash(&[&kzen_label_i]);
-                generate_random_point(&Converter::to_vec(&hash_i))
+                generate_random_point(&Converter::to_bytes(&hash_i))
             })
             .collect::<Vec<_>>();
 
@@ -87,7 +87,7 @@ impl Proof {
             .map(|i| {
                 let kzen_label_j = BigInt::from(n as u32) + BigInt::from(i as u32) + &kzen_label;
                 let hash_j = HSha512::create_hash(&[&kzen_label_j]);
-                generate_random_point(&Converter::to_vec(&hash_j))
+                generate_random_point(&Converter::to_bytes(&hash_j))
             })
             .collect::<Vec<_>>();
 
@@ -155,13 +155,13 @@ impl Proof {
         let nm = n * m;
         // some seed for generating g and h vectors
         let KZen: &[u8] = &[75, 90, 101, 110];
-        let kzen_label = BigInt::from(KZen);
+        let kzen_label = BigInt::from_bytes(KZen);
 
         let g_vec = (0..nm)
             .map(|i| {
                 let kzen_label_i = BigInt::from(i as u32) + &kzen_label;
                 let hash_i = HSha512::create_hash(&[&kzen_label_i]);
-                generate_random_point(&Converter::to_vec(&hash_i))
+                generate_random_point(&Converter::to_bytes(&hash_i))
             })
             .collect::<Vec<GE>>();
 
@@ -170,7 +170,7 @@ impl Proof {
             .map(|i| {
                 let kzen_label_j = BigInt::from(n as u32) + BigInt::from(i as u32) + &kzen_label;
                 let hash_j = HSha512::create_hash(&[&kzen_label_j]);
-                generate_random_point(&Converter::to_vec(&hash_j))
+                generate_random_point(&Converter::to_bytes(&hash_j))
             })
             .collect::<Vec<GE>>();
 
@@ -226,13 +226,13 @@ impl Proof {
         let nm = n * m;
         // some seed for generating g and h vectors
         let KZen: &[u8] = &[75, 90, 101, 110];
-        let kzen_label = BigInt::from(KZen);
+        let kzen_label = BigInt::from_bytes(KZen);
 
         let g_vec = (0..nm)
             .map(|i| {
                 let kzen_label_i = BigInt::from(i as u32) + &kzen_label;
                 let hash_i = HSha512::create_hash(&[&kzen_label_i]);
-                generate_random_point(&Converter::to_vec(&hash_i))
+                generate_random_point(&Converter::to_bytes(&hash_i))
             })
             .collect::<Vec<GE>>();
 
@@ -242,7 +242,7 @@ impl Proof {
             .map(|i| {
                 let kzen_label_j = BigInt::from(n as u32) + BigInt::from(i as u32) + &kzen_label;
                 let hash_j = HSha512::create_hash(&[&kzen_label_j]);
-                generate_random_point(&Converter::to_vec(&hash_j))
+                generate_random_point(&Converter::to_bytes(&hash_j))
             })
             .collect::<Vec<GE>>();
 
