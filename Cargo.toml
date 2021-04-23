@@ -1,6 +1,6 @@
 [package]
 name = "centipede"
-version = "0.2.10"
+version = "0.2.11"
 authors = [
     "Omer <omer@kzencorp.com>",
     "Gary <gary@kzencorp.com>"
@@ -16,12 +16,12 @@ rayon = "1.0.3"
 
 [dependencies.curv]
 git = "https://github.com/KZen-networks/curv"
-tag = "v0.6.1"
+tag = "v0.6.2"
 default-features = false
 
 [dependencies.bulletproof]
 git = "https://github.com/KZen-networks/bulletproofs"
-tag = "v1.1.4"
+tag = "v1.1.5"
 default-features = false
 
 [dev-dependencies]
