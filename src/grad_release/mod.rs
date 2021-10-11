@@ -8,9 +8,9 @@ use juggling::proof_system::Helgamalsegmented;
 use juggling::proof_system::Proof;
 use juggling::proof_system::Witness;
 use juggling::segmentation::Msegmentation;
+use sha2::Sha256;
 use Errors;
 use Errors::ErrorSegmentNum;
-use sha2::Sha256;
 
 use curv::elliptic::curves::{secp256_k1::Secp256k1, Point, Scalar};
 
@@ -18,7 +18,7 @@ const SECRET_BIT_LENGTH: usize = 256;
 
 #[derive(Serialize, Deserialize)]
 pub struct VEShare {
-    pub secret: Scalar::<Secp256k1>,
+    pub secret: Scalar<Secp256k1>,
     pub segments: Witness,
     pub encryptions: Helgamalsegmented,
     pub proof: Proof,
@@ -27,22 +27,26 @@ pub struct VEShare {
 #[derive(Serialize, Deserialize)]
 pub struct FirstMessage {
     pub segment_size: usize,
-    pub D_vec: Vec<Point::<Secp256k1>>,
+    pub D_vec: Vec<Point<Secp256k1>>,
     pub range_proof: RangeProof,
-    pub Q: Point::<Secp256k1>,
-    pub E: Point::<Secp256k1>,
+    pub Q: Point<Secp256k1>,
+    pub E: Point<Secp256k1>,
     pub dlog_proof: HomoELGamalDlogProof<Secp256k1, Sha256>,
 }
 
 #[derive(Serialize, Deserialize)]
 pub struct SegmentProof {
     pub k: usize,
-    pub E_k: Point::<Secp256k1>,
+    pub E_k: Point<Secp256k1>,
     pub correct_enc_proof: HomoELGamalProof<Secp256k1, Sha256>,
 }
 
 impl VEShare {
-    pub fn create(secret: &Scalar::<Secp256k1>, encryption_key: &Point::<Secp256k1>, segment_size: &usize) -> (FirstMessage, Self) {
+    pub fn create(
+        secret: &Scalar<Secp256k1>,
+        encryption_key: &Point<Secp256k1>,
+        segment_size: &usize,
+    ) -> (FirstMessage, Self) {
         let G = Point::<Secp256k1>::generator();
 
         let num_segments = SECRET_BIT_LENGTH / *segment_size; //TODO: asserty divisible or add segment
@@ -57,10 +61,10 @@ impl VEShare {
 
         // first message:
         let Q = Point::<Secp256k1>::generator() * secret;
-        let D_vec: Vec<Point::<Secp256k1>> = (0..num_segments)
+        let D_vec: Vec<Point<Secp256k1>> = (0..num_segments)
             .map(|i| encryptions.DE[i].D.clone())
             .collect();
-        let E_vec: Vec<Point::<Secp256k1>> = (0..num_segments)
+        let E_vec: Vec<Point<Secp256k1>> = (0..num_segments)
             .map(|i| encryptions.DE[i].E.clone())
             .collect();
         let E = Msegmentation::assemble_ge(&E_vec, segment_size);
@@ -93,14 +97,17 @@ impl VEShare {
         }
     }
 
-    pub fn start_verify(first_message: &FirstMessage, encryption_key: &Point::<Secp256k1>) -> Result<(), Errors> {
+    pub fn start_verify(
+        first_message: &FirstMessage,
+        encryption_key: &Point<Secp256k1>,
+    ) -> Result<(), Errors> {
         Proof::verify_first_message(first_message, encryption_key)
     }
 
     pub fn verify_segment(
         first_message: &FirstMessage,
         segment: &SegmentProof,
-        encryption_key: &Point::<Secp256k1>,
+        encryption_key: &Point<Secp256k1>,
     ) -> Result<(), Errors> {
         Proof::verify_segment(first_message, segment, encryption_key)
     }
@@ -108,8 +115,8 @@ impl VEShare {
     pub fn extract_secret(
         first_message: &FirstMessage,
         segment_proof_vec: &[SegmentProof],
-        decryption_key: &Scalar::<Secp256k1>,
-    ) -> Result<Scalar::<Secp256k1>, Errors> {
+        decryption_key: &Scalar<Secp256k1>,
+    ) -> Result<Scalar<Secp256k1>, Errors> {
         let len = segment_proof_vec.len();
         if len != first_message.D_vec.len() {
             return Err(ErrorSegmentNum);

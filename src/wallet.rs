@@ -24,14 +24,14 @@ use generic_array::{typenum::Unsigned, GenericArray};
 use sha2::Sha256;
 
 pub struct SecretShare {
-    pub secret: Scalar::<Secp256k1>,
-    pub pubkey: Point::<Secp256k1>,
+    pub secret: Scalar<Secp256k1>,
+    pub pubkey: Point<Secp256k1>,
 }
 
 impl SecretShare {
     pub fn generate() -> SecretShare {
         let base_point = Point::<Secp256k1>::generator();
-        let secret: Scalar::<Secp256k1> = Scalar::<Secp256k1>::random();
+        let secret: Scalar<Secp256k1> = Scalar::<Secp256k1>::random();
 
         let pubkey = base_point * &secret;
         return SecretShare { secret, pubkey };

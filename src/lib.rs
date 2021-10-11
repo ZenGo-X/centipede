@@ -19,9 +19,9 @@ pub mod juggling;
 pub mod wallet;
 extern crate bulletproof;
 extern crate curv;
+extern crate generic_array;
 extern crate rayon;
 extern crate sha2;
-extern crate generic_array;
 
 #[macro_use]
 extern crate serde_derive;

@@ -30,7 +30,11 @@ use Errors::{self, ErrorDecrypting};
 pub struct Msegmentation;
 
 impl Msegmentation {
-    pub fn get_segment_k(secret: &Scalar::<Secp256k1>, segment_size: &usize, k: u8) -> Scalar::<Secp256k1> {
+    pub fn get_segment_k(
+        secret: &Scalar<Secp256k1>,
+        segment_size: &usize,
+        k: u8,
+    ) -> Scalar<Secp256k1> {
         let ss_bn = secret.to_bigint();
         let segment_size_u32 = segment_size.clone() as u32;
         let msb = segment_size_u32 * (k as u32 + 1);
@@ -51,12 +55,12 @@ impl Msegmentation {
     }
     //returns r_k,{D_k,E_k}
     pub fn encrypt_segment_k(
-        secret: &Scalar::<Secp256k1>,
-        random: &Scalar::<Secp256k1>,
+        secret: &Scalar<Secp256k1>,
+        random: &Scalar<Secp256k1>,
         segment_size: &usize,
         k: u8,
-        pub_ke_y: &Point::<Secp256k1>,
-        G: &Point::<Secp256k1>,
+        pub_ke_y: &Point<Secp256k1>,
+        G: &Point<Secp256k1>,
     ) -> Helgamal {
         let segment_k = Msegmentation::get_segment_k(secret, segment_size, k);
         let E_k = G * random;
@@ -72,7 +76,10 @@ impl Msegmentation {
     }
 
     // TODO: find a way using generics to combine the following two fn's
-    pub fn assemble_fe(segments: &Vec<Scalar::<Secp256k1>>, segment_size: &usize) -> Scalar::<Secp256k1> {
+    pub fn assemble_fe(
+        segments: &Vec<Scalar<Secp256k1>>,
+        segment_size: &usize,
+    ) -> Scalar<Secp256k1> {
         let two = BigInt::from(2);
         let mut segments_2n = segments.clone();
         let seg1 = segments_2n.remove(0);
@@ -85,7 +92,8 @@ impl Msegmentation {
                 } else {
                     let two_to_the_n = two.pow(segment_size.clone() as u32);
                     let two_to_the_n_shifted = two_to_the_n.shl(x.1 * segment_size);
-                    let two_to_the_n_shifted_fe: Scalar::<Secp256k1> = Scalar::<Secp256k1>::from(&two_to_the_n_shifted);
+                    let two_to_the_n_shifted_fe: Scalar<Secp256k1> =
+                        Scalar::<Secp256k1>::from(&two_to_the_n_shifted);
                     let shifted_segment = x.0.clone() * two_to_the_n_shifted_fe;
                     acc + shifted_segment
                 }
@@ -93,7 +101,7 @@ impl Msegmentation {
         return seg_sum;
     }
 
-    pub fn assemble_ge(segments: &Vec<Point::<Secp256k1>>, segment_size: &usize) -> Point::<Secp256k1> {
+    pub fn assemble_ge(segments: &Vec<Point<Secp256k1>>, segment_size: &usize) -> Point<Secp256k1> {
         let two = BigInt::from(2);
         let mut segments_2n = segments.clone();
         let seg1 = segments_2n.remove(0);
@@ -103,7 +111,8 @@ impl Msegmentation {
             .fold(seg1, |acc, x| {
                 let two_to_the_n = two.pow(segment_size.clone() as u32);
                 let two_to_the_n_shifted = two_to_the_n.shl(x.1 * segment_size);
-                let two_to_the_n_shifted_fe: Scalar::<Secp256k1> = Scalar::<Secp256k1>::from(&two_to_the_n_shifted);
+                let two_to_the_n_shifted_fe: Scalar<Secp256k1> =
+                    Scalar::<Secp256k1>::from(&two_to_the_n_shifted);
                 let shifted_segment = x.0.clone() * two_to_the_n_shifted_fe;
                 acc + shifted_segment
             });
@@ -111,16 +120,16 @@ impl Msegmentation {
     }
 
     pub fn to_encrypted_segments(
-        secret: &Scalar::<Secp256k1>,
+        secret: &Scalar<Secp256k1>,
         segment_size: &usize,
         num_of_segments: usize,
-        pub_ke_y: &Point::<Secp256k1>,
-        G: &Point::<Secp256k1>,
+        pub_ke_y: &Point<Secp256k1>,
+        G: &Point<Secp256k1>,
     ) -> (Witness, Helgamalsegmented) {
         assert_eq!(*segment_size * num_of_segments, SECRETBITS);
         let r_vec = (0..num_of_segments)
             .map(|_| Scalar::<Secp256k1>::random())
-            .collect::<Vec<Scalar::<Secp256k1>>>();
+            .collect::<Vec<Scalar<Secp256k1>>>();
         let segmented_enc = (0..num_of_segments)
             .into_par_iter()
             .map(|i| {
@@ -137,7 +146,7 @@ impl Msegmentation {
             .collect::<Vec<Helgamal>>();
         let x_vec = (0..num_of_segments)
             .map(|i| Msegmentation::get_segment_k(secret, segment_size, i as u8))
-            .collect::<Vec<Scalar::<Secp256k1>>>();
+            .collect::<Vec<Scalar<Secp256k1>>>();
         let w = Witness { x_vec, r_vec };
         let heg_segmented = Helgamalsegmented { DE: segmented_enc };
         (w, heg_segmented)
@@ -146,19 +155,20 @@ impl Msegmentation {
     //TODO: implement a more advance algorithm for dlog
     pub fn decrypt_segment(
         DE: &Helgamal,
-        G: &Point::<Secp256k1>,
-        private_key: &Scalar::<Secp256k1>,
+        G: &Point<Secp256k1>,
+        private_key: &Scalar<Secp256k1>,
         limit: &u32,
-        table: &[Point::<Secp256k1>],
-    ) -> Result<Scalar::<Secp256k1>, Errors> {
+        table: &[Point<Secp256k1>],
+    ) -> Result<Scalar<Secp256k1>, Errors> {
         let mut result = None;
 
         let limit_plus_one = limit.clone() + 1u32;
-        let out_of_limit_fe: Scalar::<Secp256k1> = Scalar::<Secp256k1>::from(&BigInt::from(limit_plus_one));
-        let out_of_limit_ge: Point::<Secp256k1> = G.clone() * &out_of_limit_fe;
+        let out_of_limit_fe: Scalar<Secp256k1> =
+            Scalar::<Secp256k1>::from(&BigInt::from(limit_plus_one));
+        let out_of_limit_ge: Point<Secp256k1> = G.clone() * &out_of_limit_fe;
         let yE = DE.E.clone() * private_key;
         // handling 0 segment
-        let mut D_minus_yE: Point::<Secp256k1> = out_of_limit_ge;
+        let mut D_minus_yE: Point<Secp256k1> = out_of_limit_ge;
         if yE == DE.D.clone() {
             result = Some(());
         } else {
@@ -182,10 +192,10 @@ impl Msegmentation {
 
     pub fn decrypt(
         DE_vec: &Helgamalsegmented,
-        G: &Point::<Secp256k1>,
-        private_key: &Scalar::<Secp256k1>,
+        G: &Point<Secp256k1>,
+        private_key: &Scalar<Secp256k1>,
         segment_size: &usize,
-    ) -> Result<Scalar::<Secp256k1>, Errors> {
+    ) -> Result<Scalar<Secp256k1>, Errors> {
         let limit = 2u32.pow(segment_size.clone() as u32);
         let test_ge_table = (1..limit)
             .into_par_iter()
@@ -193,7 +203,7 @@ impl Msegmentation {
                 let test_fe = Scalar::<Secp256k1>::from(&BigInt::from(i));
                 G * &test_fe
             })
-            .collect::<Vec<Point::<Secp256k1>>>();
+            .collect::<Vec<Point<Secp256k1>>>();
         let vec_secret = (0..DE_vec.DE.len())
             .into_par_iter()
             .map(|i| {
@@ -207,7 +217,7 @@ impl Msegmentation {
                 //   .expect("error decrypting");
                 result
             })
-            .collect::<Vec<Result<Scalar::<Secp256k1>, Errors>>>();
+            .collect::<Vec<Result<Scalar<Secp256k1>, Errors>>>();
         let mut flag = true;
         let vec_secret_unwrap = (0..vec_secret.len())
             .into_iter()
@@ -219,7 +229,7 @@ impl Msegmentation {
                     vec_secret[i].as_ref().unwrap().clone()
                 }
             })
-            .collect::<Vec<Scalar::<Secp256k1>>>();
+            .collect::<Vec<Scalar<Secp256k1>>>();
         match flag {
             false => Err(ErrorDecrypting),
             true => Ok(Msegmentation::assemble_fe(
