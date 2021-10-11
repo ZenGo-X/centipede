@@ -16,7 +16,6 @@ version 3 of the License, or (at your option) any later version.
 */
 
 use curv::arithmetic::traits::*;
-use curv::elliptic::curves::traits::*;
 use curv::BigInt;
 
 use curv::cryptographic_primitives::hashing::{Digest, DigestExt};
@@ -24,14 +23,14 @@ use curv::elliptic::curves::{secp256_k1::Secp256k1, Point, Scalar};
 use sha2::Sha256;
 
 pub struct SecretShare {
-    pub secret: FE,
-    pub pubkey: GE,
+    pub secret: Scalar::<Secp256k1>,
+    pub pubkey: Point::<Secp256k1>,
 }
 
 impl SecretShare {
     pub fn generate() -> SecretShare {
-        let base_point: GE = ECPoint::generator();
-        let secret: FE = ECScalar::new_random();
+        let base_point: Point::<Secp256k1> = Point::<Secp256k1>::generator();
+        let secret: Scalar::<Secp256k1> = Scalar::<Secp256k1>::new_random();
 
         let pubkey = base_point * &secret;
         return SecretShare { secret, pubkey };
@@ -46,14 +45,14 @@ impl SecretShare {
     }
 }
 
-pub fn generate_random_point(bytes: &[u8]) -> GE {
-    let result: Result<GE, _> = ECPoint::from_bytes(&bytes);
+pub fn generate_random_point(bytes: &[u8]) -> Point::<Secp256k1> {
+    let result: Result<Point::<Secp256k1>, _> = Point::<Secp256k1>::from_bytes(&bytes);
     if result.is_ok() {
         return result.unwrap();
     } else {
         let two = BigInt::from(2);
         let bn = BigInt::from_bytes(bytes);
-        let bn_times_two = BigInt::mod_mul(&bn, &two, &FE::q());
+        let bn_times_two = BigInt::mod_mul(&bn, &two, &Scalar::<Secp256k1>::q());
         let bytes = BigInt::to_bytes(&bn_times_two);
         return generate_random_point(&bytes);
     }
