@@ -31,7 +31,7 @@ pub struct Msegmentation;
 
 impl Msegmentation {
     pub fn get_segment_k(secret: &Scalar::<Secp256k1>, segment_size: &usize, k: u8) -> Scalar::<Secp256k1> {
-        let ss_bn = secret.to_big_int();
+        let ss_bn = secret.to_bigint();
         let segment_size_u32 = segment_size.clone() as u32;
         let msb = segment_size_u32 * (k as u32 + 1);
         let lsb = segment_size_u32 * k as u32;
@@ -119,7 +119,7 @@ impl Msegmentation {
     ) -> (Witness, Helgamalsegmented) {
         assert_eq!(*segment_size * num_of_segments, SECRETBITS);
         let r_vec = (0..num_of_segments)
-            .map(|_| Scalar::<Secp256k1>::new_random())
+            .map(|_| Scalar::<Secp256k1>::random())
             .collect::<Vec<Scalar::<Secp256k1>>>();
         let segmented_enc = (0..num_of_segments)
             .into_par_iter()
@@ -162,7 +162,7 @@ impl Msegmentation {
         if yE == DE.D.clone() {
             result = Some(());
         } else {
-            D_minus_yE = DE.D.sub_point(&yE.get_element());
+            D_minus_yE = DE.D - &yE;
         }
         // TODO: make bound bigger then 32
         let mut table_iter = table.iter().enumerate();

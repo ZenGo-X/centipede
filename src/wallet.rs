@@ -29,8 +29,8 @@ pub struct SecretShare {
 
 impl SecretShare {
     pub fn generate() -> SecretShare {
-        let base_point: Point::<Secp256k1> = Point::<Secp256k1>::generator();
-        let secret: Scalar::<Secp256k1> = Scalar::<Secp256k1>::new_random();
+        let base_point = Point::<Secp256k1>::generator();
+        let secret: Scalar::<Secp256k1> = Scalar::<Secp256k1>::random();
 
         let pubkey = base_point * &secret;
         return SecretShare { secret, pubkey };
@@ -40,8 +40,8 @@ impl SecretShare {
     pub fn generate_randomness(&self, label: &BigInt) -> BigInt {
         let h = generate_random_point(&Converter::to_bytes(label));
         let gamma = h * &self.secret;
-        let beta = Sha256::new().chain_points([&gamma]).result_scalar();
-        beta.to_big_int()
+        let beta: Scalar<Secp256k1> = Sha256::new().chain_points([&gamma]).result_scalar();
+        beta.to_bigint()
     }
 }
 
@@ -52,7 +52,7 @@ pub fn generate_random_point(bytes: &[u8]) -> Point::<Secp256k1> {
     } else {
         let two = BigInt::from(2);
         let bn = BigInt::from_bytes(bytes);
-        let bn_times_two = BigInt::mod_mul(&bn, &two, &Scalar::<Secp256k1>::q());
+        let bn_times_two = BigInt::mod_mul(&bn, &two, &Scalar::<Secp256k1>::group_order());
         let bytes = BigInt::to_bytes(&bn_times_two);
         return generate_random_point(&bytes);
     }
