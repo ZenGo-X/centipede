@@ -21,6 +21,7 @@ extern crate bulletproof;
 extern crate curv;
 extern crate rayon;
 extern crate sha2;
+extern crate generic_array;
 
 #[macro_use]
 extern crate serde_derive;
