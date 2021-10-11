@@ -14,6 +14,7 @@ serde_derive = "1.0"
 serde = "1.0"
 rayon = "1.0.3"
 curv-kzen = { version = "0.8", default-features = false }
+sha2 = "0.9"
 
 [dependencies.bulletproof]
 git = "https://github.com/tmpfs/bulletproofs"

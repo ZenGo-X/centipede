@@ -16,12 +16,13 @@ version 3 of the License, or (at your option) any later version.
 */
 
 use curv::arithmetic::traits::*;
-use curv::cryptographic_primitives::hashing::hash_sha256::HSha256;
-use curv::cryptographic_primitives::hashing::traits::*;
-use curv::elliptic::curves::secp256_k1::FE;
-use curv::elliptic::curves::secp256_k1::GE;
 use curv::elliptic::curves::traits::*;
 use curv::BigInt;
+
+use curv::cryptographic_primitives::hashing::{Digest, DigestExt};
+use curv::elliptic::curves::{secp256_k1::Secp256k1, Point, Scalar};
+use sha2::Sha256;
+
 pub struct SecretShare {
     pub secret: FE,
     pub pubkey: GE,
@@ -40,7 +41,7 @@ impl SecretShare {
     pub fn generate_randomness(&self, label: &BigInt) -> BigInt {
         let h = generate_random_point(&Converter::to_bytes(label));
         let gamma = h * &self.secret;
-        let beta = HSha256::create_hash_from_ge(&[&gamma]);
+        let beta = Sha256::new().chain_points([&gamma]).result_scalar();
         beta.to_big_int()
     }
 }

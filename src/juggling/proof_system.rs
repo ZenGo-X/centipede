@@ -15,12 +15,8 @@ version 3 of the License, or (at your option) any later version.
 @license GPL-3.0+ <https://github.com/KZen-networks/centipede/blob/master/LICENSE>
 */
 use curv::BigInt;
-use curv::elliptic::curves::secp256_k1::GE;
-use curv::elliptic::curves::secp256_k1::FE;
 use curv::cryptographic_primitives::proofs::sigma_correct_homomorphic_elgamal_encryption_of_dlog::{HomoELGamalDlogProof,HomoElGamalDlogWitness,HomoElGamalDlogStatement};
 use curv::cryptographic_primitives::proofs::sigma_correct_homomorphic_elgamal_enc::{HomoELGamalProof,HomoElGamalWitness,HomoElGamalStatement};
-use curv::cryptographic_primitives::hashing::hash_sha512::HSha512;
-use curv::cryptographic_primitives::hashing::traits::*;
 use curv::arithmetic::traits::Converter;
 use bulletproof::proofs::range_proof::{RangeProof,generate_random_point};
 use juggling::segmentation::Msegmentation;
@@ -30,6 +26,10 @@ use ::Errors::ErrorFirstMessage;
 use grad_release::SegmentProof;
 use ::Errors::ErrorSegmentProof;
 use curv::elliptic::curves::traits::ECPoint;
+
+use curv::cryptographic_primitives::hashing::{Digest, DigestExt};
+use curv::elliptic::curves::{secp256_k1::Secp256k1, Point, Scalar};
+use sha2::Sha512;
 
 #[derive(Serialize, Deserialize)]
 pub struct Helgamal {
@@ -77,7 +77,7 @@ impl Proof {
         let g_vec = (0..nm)
             .map(|i| {
                 let kzen_label_i = BigInt::from(i as u32) + &kzen_label;
-                let hash_i = HSha512::create_hash(&[&kzen_label_i]);
+                let hash_i = Sha512::new().chain_bigint(&kzen_label_i).result_bigint();
                 generate_random_point(&Converter::to_bytes(&hash_i))
             })
             .collect::<Vec<_>>();
@@ -86,7 +86,7 @@ impl Proof {
         let h_vec = (0..nm)
             .map(|i| {
                 let kzen_label_j = BigInt::from(n as u32) + BigInt::from(i as u32) + &kzen_label;
-                let hash_j = HSha512::create_hash(&[&kzen_label_j]);
+                let hash_j = Sha512::new().chain_bigint(&kzen_label_j).result_bigint();
                 generate_random_point(&Converter::to_bytes(&hash_j))
             })
             .collect::<Vec<_>>();
@@ -160,7 +160,7 @@ impl Proof {
         let g_vec = (0..nm)
             .map(|i| {
                 let kzen_label_i = BigInt::from(i as u32) + &kzen_label;
-                let hash_i = HSha512::create_hash(&[&kzen_label_i]);
+                let hash_i = Sha512::new().chain_bigint(&kzen_label_i).result_bigint();
                 generate_random_point(&Converter::to_bytes(&hash_i))
             })
             .collect::<Vec<GE>>();
@@ -169,7 +169,7 @@ impl Proof {
         let h_vec = (0..nm)
             .map(|i| {
                 let kzen_label_j = BigInt::from(n as u32) + BigInt::from(i as u32) + &kzen_label;
-                let hash_j = HSha512::create_hash(&[&kzen_label_j]);
+                let hash_j = Sha512::new().chain_bigint(&kzen_label_j).result_bigint();
                 generate_random_point(&Converter::to_bytes(&hash_j))
             })
             .collect::<Vec<GE>>();
@@ -231,7 +231,7 @@ impl Proof {
         let g_vec = (0..nm)
             .map(|i| {
                 let kzen_label_i = BigInt::from(i as u32) + &kzen_label;
-                let hash_i = HSha512::create_hash(&[&kzen_label_i]);
+                let hash_i = Sha512::new().chain_bigint(&kzen_label_i).result_bigint();
                 generate_random_point(&Converter::to_bytes(&hash_i))
             })
             .collect::<Vec<GE>>();
@@ -241,7 +241,7 @@ impl Proof {
         let h_vec = (0..nm)
             .map(|i| {
                 let kzen_label_j = BigInt::from(n as u32) + BigInt::from(i as u32) + &kzen_label;
-                let hash_j = HSha512::create_hash(&[&kzen_label_j]);
+                let hash_j = Sha512::new().chain_bigint(&kzen_label_j).result_bigint();
                 generate_random_point(&Converter::to_bytes(&hash_j))
             })
             .collect::<Vec<GE>>();
