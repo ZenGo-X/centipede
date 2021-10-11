@@ -162,7 +162,7 @@ impl Msegmentation {
         if yE == DE.D.clone() {
             result = Some(());
         } else {
-            D_minus_yE = DE.D - &yE;
+            D_minus_yE = &DE.D - &yE;
         }
         // TODO: make bound bigger then 32
         let mut table_iter = table.iter().enumerate();
@@ -216,7 +216,7 @@ impl Msegmentation {
                     flag = false;
                     Scalar::<Secp256k1>::zero()
                 } else {
-                    vec_secret[i].unwrap()
+                    vec_secret[i].as_ref().unwrap().clone()
                 }
             })
             .collect::<Vec<Scalar::<Secp256k1>>>();

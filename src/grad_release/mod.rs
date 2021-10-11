@@ -77,7 +77,7 @@ impl VEShare {
                 dlog_proof: proof.elgamal_enc_dlog.clone(),
             },
             VEShare {
-                secret: *secret,
+                secret: secret.clone(),
                 segments,
                 encryptions,
                 proof,
@@ -88,7 +88,7 @@ impl VEShare {
     pub fn segment_k_proof(&self, segment_k: &usize) -> SegmentProof {
         SegmentProof {
             k: segment_k.clone(),
-            E_k: self.encryptions.DE[*segment_k].E,
+            E_k: self.encryptions.DE[*segment_k].E.clone(),
             correct_enc_proof: self.proof.elgamal_enc[*segment_k].clone(),
         }
     }
@@ -116,8 +116,8 @@ impl VEShare {
         }
         let elgamal_enc_vec = (0..len)
             .map(|i| Helgamal {
-                D: first_message.D_vec[i],
-                E: segment_proof_vec[i].E_k,
+                D: first_message.D_vec[i].clone(),
+                E: segment_proof_vec[i].E_k.clone(),
             })
             .collect::<Vec<Helgamal>>();
         let encryptions = Helgamalsegmented {

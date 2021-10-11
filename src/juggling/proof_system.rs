@@ -235,7 +235,7 @@ impl Proof {
             })
             .collect::<Vec<Point::<Secp256k1>>>();
 
-        let Y = *encryption_key;
+        let Y = encryption_key.clone();
         // can run in parallel to g_vec:
         let h_vec = (0..nm)
             .map(|i| {
@@ -245,7 +245,7 @@ impl Proof {
             })
             .collect::<Vec<Point::<Secp256k1>>>();
 
-        let D_vec: Vec<Point::<Secp256k1>> = (0..num_segments).map(|i| first_message.D_vec[i]).collect();
+        let D_vec: Vec<Point::<Secp256k1>> = (0..num_segments).map(|i| first_message.D_vec[i].clone()).collect();
         let bp_ver = first_message
             .range_proof
             .verify(
@@ -259,12 +259,12 @@ impl Proof {
             .is_ok();
 
         let sum_D = Msegmentation::assemble_ge(&D_vec, &first_message.segment_size);
-        let sum_E = first_message.E;
+        let sum_E = first_message.E.clone();
 
         let delta = HomoElGamalDlogStatement {
             G: Point::<Secp256k1>::generator().to_point(),
             Y,
-            Q: first_message.Q,
+            Q: first_message.Q.clone(),
             D: sum_D,
             E: sum_E,
         };
@@ -285,9 +285,9 @@ impl Proof {
         let delta = HomoElGamalStatement {
             G: Point::<Secp256k1>::generator().to_point(),
             H: Point::<Secp256k1>::generator().to_point(),
-            Y: *encryption_key,
-            D: first_message.D_vec[segment.k],
-            E: segment.E_k,
+            Y: encryption_key.clone(),
+            D: first_message.D_vec[segment.k].clone(),
+            E: segment.E_k.clone(),
         };
 
         let elgamal_proof = segment.correct_enc_proof.verify(&delta).is_ok();
