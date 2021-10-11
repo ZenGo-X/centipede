@@ -262,7 +262,7 @@ impl Proof {
         let sum_E = first_message.E;
 
         let delta = HomoElGamalDlogStatement {
-            G: Point::<Secp256k1>::generator(),
+            G: Point::<Secp256k1>::generator().to_point(),
             Y,
             Q: first_message.Q,
             D: sum_D,
@@ -283,8 +283,8 @@ impl Proof {
         encryption_key: &Point::<Secp256k1>,
     ) -> Result<(), Errors> {
         let delta = HomoElGamalStatement {
-            G: Point::<Secp256k1>::generator(),
-            H: Point::<Secp256k1>::generator(),
+            G: Point::<Secp256k1>::generator().to_point(),
+            H: Point::<Secp256k1>::generator().to_point(),
             Y: *encryption_key,
             D: first_message.D_vec[segment.k],
             E: segment.E_k,

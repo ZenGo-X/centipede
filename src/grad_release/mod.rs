@@ -43,7 +43,7 @@ pub struct SegmentProof {
 
 impl VEShare {
     pub fn create(secret: &Scalar::<Secp256k1>, encryption_key: &Point::<Secp256k1>, segment_size: &usize) -> (FirstMessage, Self) {
-        let G: Point::<Secp256k1> = Point::<Secp256k1>::generator();
+        let G = Point::<Secp256k1>::generator();
 
         let num_segments = SECRET_BIT_LENGTH / *segment_size; //TODO: asserty divisible or add segment
         let (segments, encryptions) = Msegmentation::to_encrypted_segments(
