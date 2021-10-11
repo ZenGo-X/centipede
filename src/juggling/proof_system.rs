@@ -302,7 +302,7 @@ impl Proof {
 
 #[cfg(test)]
 mod tests {
-    use curv::elliptic::curves::traits::*;
+    use curv::elliptic::curves::{secp256_k1::Secp256k1, Point, Scalar};
     use juggling::proof_system::*;
     use juggling::segmentation::Msegmentation;
     use wallet::SecretShare;
@@ -310,8 +310,8 @@ mod tests {
     #[test]
     fn test_varifiable_encryption() {
         let segment_size = 8;
-        let y: Scalar::<Secp256k1> = ECScalar::new_random();
-        let G: Point::<Secp256k1> = ECPoint::generator();
+        let y: Scalar::<Secp256k1> = Scalar::<Secp256k1>::random();
+        let G = Point::<Secp256k1>::generator();
         let Y = G.clone() * &y;
         let x = SecretShare::generate();
         let Q = G.clone() * &x.secret;
@@ -332,8 +332,8 @@ mod tests {
     #[should_panic]
     fn test_varifiable_encryption_bad_Q() {
         let segment_size = 8;
-        let y: Scalar::<Secp256k1> = ECScalar::new_random();
-        let G: Point::<Secp256k1> = ECPoint::generator();
+        let y: Scalar::<Secp256k1> = Scalar::<Secp256k1>::random();
+        let G = Point::<Secp256k1>::generator();
         let Y = G.clone() * &y;
         let x = SecretShare::generate();
         let Q = G.clone() * &x.secret + G.clone();

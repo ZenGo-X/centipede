@@ -136,7 +136,7 @@ impl VEShare {
 
 #[cfg(test)]
 mod tests {
-    use curv::elliptic::curves::traits::*;
+    use curv::elliptic::curves::{secp256_k1::Secp256k1, Point, Scalar};
     use grad_release::VEShare;
     use grad_release::SECRET_BIT_LENGTH;
 
@@ -145,14 +145,14 @@ mod tests {
     fn test_secret_exchange() {
         let segment_size = 8;
         // secret generation
-        let secret_p1 = ECScalar::new_random();
-        let secret_p2 = ECScalar::new_random();
+        let secret_p1 = Scalar::<Secp256k1>::random();
+        let secret_p2 = Scalar::<Secp256k1>::random();
 
         // enc/dec key pairs generation
-        let p1_dec_key = ECScalar::new_random();
-        let p1_enc_key = Point::<Secp256k1>::generator() * p1_dec_key;
-        let p2_dec_key = ECScalar::new_random();
-        let p2_enc_key = Point::<Secp256k1>::generator() * p2_dec_key;
+        let p1_dec_key = Scalar::<Secp256k1>::random();
+        let p1_enc_key = Point::<Secp256k1>::generator() * p1_dec_key.clone();
+        let p2_dec_key = Scalar::<Secp256k1>::random();
+        let p2_enc_key = Point::<Secp256k1>::generator() * p2_dec_key.clone();
 
         // p1 sends first message to p2
         let (p1_first_message, p1_ve_share) =
