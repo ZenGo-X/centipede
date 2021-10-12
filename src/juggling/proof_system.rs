@@ -90,8 +90,7 @@ impl Proof {
             })
             .collect::<Vec<_>>();
 
-        let range_proof =
-            RangeProof::prove(&g_vec, &h_vec, G, Y, w.x_vec.clone(), &w.r_vec, n);
+        let range_proof = RangeProof::prove(&g_vec, &h_vec, G, Y, w.x_vec.clone(), &w.r_vec, n);
 
         // proofs of correct elgamal:
 

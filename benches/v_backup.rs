@@ -18,7 +18,7 @@ mod bench {
     pub fn full_backup_cycle(c: &mut Criterion) {
         c.bench_function("full_backup_cycle", move |b| {
             let segment_size = 8;
-            let y: Scalar::<Secp256k1> = Scalar::<Secp256k1>::random();
+            let y: Scalar<Secp256k1> = Scalar::<Secp256k1>::random();
             let G = Point::<Secp256k1>::generator();
             let Y = G.clone() * &y;
             let x = SecretShare::generate();
@@ -37,7 +37,7 @@ mod bench {
     pub fn create_backup(c: &mut Criterion) {
         c.bench_function("create_backup", move |b| {
             let segment_size = 8;
-            let y: Scalar::<Secp256k1> = Scalar::<Secp256k1>::random();
+            let y: Scalar<Secp256k1> = Scalar::<Secp256k1>::random();
             let G = Point::<Secp256k1>::generator();
             let Y = G.clone() * &y;
             let x = SecretShare::generate();
@@ -53,7 +53,7 @@ mod bench {
     pub fn recover_backup(c: &mut Criterion) {
         c.bench_function("recover_backup", move |b| {
             let segment_size = 8;
-            let y: Scalar::<Secp256k1> = Scalar::<Secp256k1>::random();
+            let y: Scalar<Secp256k1> = Scalar::<Secp256k1>::random();
             let G = Point::<Secp256k1>::generator();
             let Y = G.clone() * &y;
             let x = SecretShare::generate();

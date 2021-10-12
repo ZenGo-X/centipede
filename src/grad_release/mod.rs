@@ -131,7 +131,6 @@ impl VEShare {
             DE: elgamal_enc_vec,
         };
 
-        
         Msegmentation::decrypt(
             &encryptions,
             &Point::<Secp256k1>::generator(),
