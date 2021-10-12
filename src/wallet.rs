@@ -34,7 +34,7 @@ impl SecretShare {
         let secret: Scalar<Secp256k1> = Scalar::<Secp256k1>::random();
 
         let pubkey = base_point * &secret;
-        return SecretShare { secret, pubkey };
+        SecretShare { secret, pubkey }
     }
     //based on VRF construction from ellitpic curve: https://eprint.iacr.org/2017/099.pdf
     //TODO: consider to output in str format

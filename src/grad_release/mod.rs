@@ -52,12 +52,12 @@ impl VEShare {
         let num_segments = SECRET_BIT_LENGTH / *segment_size; //TODO: asserty divisible or add segment
         let (segments, encryptions) = Msegmentation::to_encrypted_segments(
             secret,
-            &segment_size,
+            segment_size,
             num_segments,
-            &encryption_key,
+            encryption_key,
             &G,
         );
-        let proof = Proof::prove(&segments, &encryptions, &G, &encryption_key, &segment_size);
+        let proof = Proof::prove(&segments, &encryptions, &G, encryption_key, segment_size);
 
         // first message:
         let Q = Point::<Secp256k1>::generator() * secret;
@@ -73,7 +73,7 @@ impl VEShare {
 
         (
             FirstMessage {
-                segment_size: segment_size.clone(),
+                segment_size: *segment_size,
                 D_vec,
                 range_proof: proof.bulletproof.clone(),
                 Q,
@@ -91,7 +91,7 @@ impl VEShare {
 
     pub fn segment_k_proof(&self, segment_k: &usize) -> SegmentProof {
         SegmentProof {
-            k: segment_k.clone(),
+            k: *segment_k,
             E_k: self.encryptions.DE[*segment_k].E.clone(),
             correct_enc_proof: self.proof.elgamal_enc[*segment_k].clone(),
         }
@@ -131,13 +131,13 @@ impl VEShare {
             DE: elgamal_enc_vec,
         };
 
-        let secret_decrypted = Msegmentation::decrypt(
+        
+        Msegmentation::decrypt(
             &encryptions,
             &Point::<Secp256k1>::generator(),
-            &decryption_key,
+            decryption_key,
             &first_message.segment_size,
-        );
-        secret_decrypted
+        )
     }
 }
 

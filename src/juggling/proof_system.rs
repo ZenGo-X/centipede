@@ -65,7 +65,7 @@ impl Proof {
         // bulletproofs:
         let num_segments = w.x_vec.len();
         // bit range
-        let n = segment_size.clone();
+        let n = *segment_size;
         // batch size
         let m = num_segments;
         let nm = n * m;
@@ -91,7 +91,7 @@ impl Proof {
             .collect::<Vec<_>>();
 
         let range_proof =
-            RangeProof::prove(&g_vec, &h_vec, G, &Y, w.x_vec.clone(), &w.r_vec, n.clone());
+            RangeProof::prove(&g_vec, &h_vec, G, Y, w.x_vec.clone(), &w.r_vec, n);
 
         // proofs of correct elgamal:
 
@@ -148,7 +148,7 @@ impl Proof {
         // bulletproofs:
         let num_segments = self.elgamal_enc.len();
         // bit range
-        let n = segment_size.clone();
+        let n = *segment_size;
         // batch size
         let m = num_segments;
         let nm = n * m;
@@ -176,7 +176,7 @@ impl Proof {
         let D_vec: Vec<Point<Secp256k1>> = (0..num_segments).map(|i| c.DE[i].D.clone()).collect();
         let bp_ver = self
             .bulletproof
-            .verify(&g_vec, &h_vec, G, Y, &D_vec, segment_size.clone())
+            .verify(&g_vec, &h_vec, G, Y, &D_vec, *segment_size)
             .is_ok();
 
         let elgamal_proofs_ver = (0..num_segments)
@@ -205,7 +205,7 @@ impl Proof {
         };
 
         let elgamal_dlog_proof_ver = self.elgamal_enc_dlog.verify(&delta).is_ok();
-        if bp_ver && elgamal_dlog_proof_ver && elgamal_proofs_ver.iter().all(|&x| x == true) {
+        if bp_ver && elgamal_dlog_proof_ver && elgamal_proofs_ver.iter().all(|&x| x) {
             Ok(())
         } else {
             Err(ErrorProving)
@@ -219,7 +219,7 @@ impl Proof {
         // bulletproofs:
         let num_segments = first_message.D_vec.len();
         // bit range
-        let n = first_message.segment_size.clone();
+        let n = first_message.segment_size;
         // batch size
         let m = num_segments;
         let nm = n * m;
@@ -256,7 +256,7 @@ impl Proof {
                 &Point::<Secp256k1>::generator(),
                 &Y,
                 &first_message.D_vec,
-                first_message.segment_size.clone(),
+                first_message.segment_size,
             )
             .is_ok();
 
@@ -314,9 +314,9 @@ mod tests {
         let segment_size = 8;
         let y: Scalar<Secp256k1> = Scalar::<Secp256k1>::random();
         let G = Point::<Secp256k1>::generator();
-        let Y = G.clone() * &y;
+        let Y = G * &y;
         let x = SecretShare::generate();
-        let Q = G.clone() * &x.secret;
+        let Q = G * &x.secret;
         let (segments, encryptions) =
             Msegmentation::to_encrypted_segments(&x.secret, &segment_size, 32, &Y, &G);
         let secret_new = Msegmentation::assemble_fe(&segments.x_vec, &segment_size);
@@ -336,9 +336,9 @@ mod tests {
         let segment_size = 8;
         let y: Scalar<Secp256k1> = Scalar::<Secp256k1>::random();
         let G = Point::<Secp256k1>::generator();
-        let Y = G.clone() * &y;
+        let Y = G * &y;
         let x = SecretShare::generate();
-        let Q = G.clone() * &x.secret + G.clone();
+        let Q = G * &x.secret + G;
         let (segments, encryptions) =
             Msegmentation::to_encrypted_segments(&x.secret, &segment_size, 32, &Y, &G);
         let secret_new = Msegmentation::assemble_fe(&segments.x_vec, &segment_size);
