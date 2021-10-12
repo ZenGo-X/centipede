@@ -12,15 +12,14 @@ mod bench {
     use centipede::juggling::segmentation::Msegmentation;
     use centipede::wallet::SecretShare;
     use criterion::Criterion;
-    use curv::elliptic::curves::secp256_k1::FE;
-    use curv::elliptic::curves::secp256_k1::GE;
-    use curv::elliptic::curves::traits::*;
+
+    use curv::elliptic::curves::{secp256_k1::Secp256k1, Point, Scalar};
 
     pub fn full_backup_cycle(c: &mut Criterion) {
         c.bench_function("full_backup_cycle", move |b| {
             let segment_size = 8;
-            let y: FE = ECScalar::new_random();
-            let G: GE = ECPoint::generator();
+            let y: Scalar::<Secp256k1> = Scalar::<Secp256k1>::random();
+            let G = Point::<Secp256k1>::generator();
             let Y = G.clone() * &y;
             let x = SecretShare::generate();
             let Q = G.clone() * &x.secret;
@@ -38,8 +37,8 @@ mod bench {
     pub fn create_backup(c: &mut Criterion) {
         c.bench_function("create_backup", move |b| {
             let segment_size = 8;
-            let y: FE = ECScalar::new_random();
-            let G: GE = ECPoint::generator();
+            let y: Scalar::<Secp256k1> = Scalar::<Secp256k1>::random();
+            let G = Point::<Secp256k1>::generator();
             let Y = G.clone() * &y;
             let x = SecretShare::generate();
 
@@ -54,8 +53,8 @@ mod bench {
     pub fn recover_backup(c: &mut Criterion) {
         c.bench_function("recover_backup", move |b| {
             let segment_size = 8;
-            let y: FE = ECScalar::new_random();
-            let G: GE = ECPoint::generator();
+            let y: Scalar::<Secp256k1> = Scalar::<Secp256k1>::random();
+            let G = Point::<Secp256k1>::generator();
             let Y = G.clone() * &y;
             let x = SecretShare::generate();
             let Q = G.clone() * &x.secret;
