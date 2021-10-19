@@ -7,6 +7,7 @@ authors = [
 ]
 description = "A scheme for instantiating KMS's with recovery"
 repository = "https://github.com/ZenGo-X/centipede"
+license = "GPL-3.0"
 categories = ["cryptography"]
 keywords = ["cryptography", "crypto"]
 
