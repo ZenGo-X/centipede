@@ -16,11 +16,11 @@ version 3 of the License, or (at your option) any later version.
 */
 
 use curv::arithmetic::traits::*;
+use curv::elliptic::curves::secp256_k1::hash_to_curve::generate_random_point;
 use curv::BigInt;
 
 use curv::cryptographic_primitives::hashing::{Digest, DigestExt};
-use curv::elliptic::curves::{secp256_k1::Secp256k1, Curve, ECPoint, Point, Scalar};
-use generic_array::{typenum::Unsigned, GenericArray};
+use curv::elliptic::curves::{secp256_k1::Secp256k1, Point, Scalar};
 use sha2::Sha256;
 
 pub struct SecretShare {
@@ -44,31 +44,6 @@ impl SecretShare {
         let beta: Scalar<Secp256k1> = Sha256::new().chain_points([&gamma]).result_scalar();
         beta.to_bigint()
     }
-}
-
-pub fn generate_random_point(bytes: &[u8]) -> Point<Secp256k1> {
-    let compressed_point_len =
-        <<Secp256k1 as Curve>::Point as ECPoint>::CompressedPointLength::USIZE;
-    let truncated = if bytes.len() > compressed_point_len - 1 {
-        &bytes[0..compressed_point_len - 1]
-    } else {
-        &bytes
-    };
-    let mut buffer = GenericArray::<
-        u8,
-        <<Secp256k1 as Curve>::Point as ECPoint>::CompressedPointLength,
-    >::default();
-    buffer.as_mut_slice()[0] = 0x2;
-    buffer.as_mut_slice()[1..1 + truncated.len()].copy_from_slice(truncated);
-    if let Ok(point) = Point::from_bytes(buffer.as_slice()) {
-        return point;
-    }
-
-    let bn = BigInt::from_bytes(bytes);
-    let two = BigInt::from(2);
-    let bn_times_two = BigInt::mod_mul(&bn, &two, Scalar::<Secp256k1>::group_order());
-    let bytes = BigInt::to_bytes(&bn_times_two);
-    generate_random_point(&bytes)
 }
 
 #[cfg(test)]
