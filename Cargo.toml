@@ -1,10 +1,14 @@
 [package]
 name = "centipede"
-version = "0.2.12"
+version = "0.3.0"
 authors = [
     "Omer <omer@kzencorp.com>",
     "Gary <gary@kzencorp.com>"
 ]
+description = "A scheme for instantiating KMS's with recovery"
+repository = "https://github.com/ZenGo-X/centipede"
+categories = ["cryptography"]
+keywords = ["cryptography", "crypto"]
 
 [lib]
 crate-type = ["lib"]
@@ -13,18 +17,16 @@ crate-type = ["lib"]
 serde_derive = "1.0"
 serde = "1.0"
 rayon = "1.0.3"
-curv = { package = "curv-kzen", version = "0.7", default-features = false }
-
-[dependencies.bulletproof]
-git = "https://github.com/KZen-networks/bulletproofs"
-tag = "v1.1.6"
-default-features = false
+curv-kzen = { version = "0.9", default-features = false }
+bulletproof-kzen = { version = "1.2", default-features = false }
+sha2 = "0.9"
+generic-array = "0.14"
 
 [dev-dependencies]
 criterion = "0.2"
 
 [features]
-default = ["curv/rust-gmp-kzen"]
+default = ["curv-kzen/rust-gmp-kzen"]
 
 [[bench]]
 name = "v_backup"

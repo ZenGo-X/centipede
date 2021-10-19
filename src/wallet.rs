@@ -16,45 +16,33 @@ version 3 of the License, or (at your option) any later version.
 */
 
 use curv::arithmetic::traits::*;
-use curv::cryptographic_primitives::hashing::hash_sha256::HSha256;
-use curv::cryptographic_primitives::hashing::traits::*;
-use curv::elliptic::curves::secp256_k1::FE;
-use curv::elliptic::curves::secp256_k1::GE;
-use curv::elliptic::curves::traits::*;
+use curv::elliptic::curves::secp256_k1::hash_to_curve::generate_random_point;
 use curv::BigInt;
+
+use curv::cryptographic_primitives::hashing::{Digest, DigestExt};
+use curv::elliptic::curves::{secp256_k1::Secp256k1, Point, Scalar};
+use sha2::Sha256;
+
 pub struct SecretShare {
-    pub secret: FE,
-    pub pubkey: GE,
+    pub secret: Scalar<Secp256k1>,
+    pub pubkey: Point<Secp256k1>,
 }
 
 impl SecretShare {
     pub fn generate() -> SecretShare {
-        let base_point: GE = ECPoint::generator();
-        let secret: FE = ECScalar::new_random();
+        let base_point = Point::<Secp256k1>::generator();
+        let secret: Scalar<Secp256k1> = Scalar::<Secp256k1>::random();
 
         let pubkey = base_point * &secret;
-        return SecretShare { secret, pubkey };
+        SecretShare { secret, pubkey }
     }
     //based on VRF construction from ellitpic curve: https://eprint.iacr.org/2017/099.pdf
     //TODO: consider to output in str format
     pub fn generate_randomness(&self, label: &BigInt) -> BigInt {
         let h = generate_random_point(&Converter::to_bytes(label));
         let gamma = h * &self.secret;
-        let beta = HSha256::create_hash_from_ge(&[&gamma]);
-        beta.to_big_int()
-    }
-}
-
-pub fn generate_random_point(bytes: &[u8]) -> GE {
-    let result: Result<GE, _> = ECPoint::from_bytes(&bytes);
-    if result.is_ok() {
-        return result.unwrap();
-    } else {
-        let two = BigInt::from(2);
-        let bn = BigInt::from_bytes(bytes);
-        let bn_times_two = BigInt::mod_mul(&bn, &two, &FE::q());
-        let bytes = BigInt::to_bytes(&bn_times_two);
-        return generate_random_point(&bytes);
+        let beta: Scalar<Secp256k1> = Sha256::new().chain_points([&gamma]).result_scalar();
+        beta.to_bigint()
     }
 }
 
