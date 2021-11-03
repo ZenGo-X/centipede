@@ -171,7 +171,7 @@ impl Msegmentation {
         }
         // TODO: make bound bigger then 32
         let mut table_iter = table.iter().enumerate();
-        // find is short-circuting //TODO: counter measure against side channel attacks
+        // find is short-circuiting //TODO: counter measure against side channel attacks
         let matched_value_index = table_iter.find(|&x| x.1 == &D_minus_yE);
         match matched_value_index {
             Some(x) => Ok(Scalar::<Secp256k1>::from(&BigInt::from(x.0 as u32 + 1))),

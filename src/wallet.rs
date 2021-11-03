@@ -36,7 +36,7 @@ impl SecretShare {
         let pubkey = base_point * &secret;
         SecretShare { secret, pubkey }
     }
-    //based on VRF construction from ellitpic curve: https://eprint.iacr.org/2017/099.pdf
+    //based on VRF construction from elliptic curve: https://eprint.iacr.org/2017/099.pdf
     //TODO: consider to output in str format
     pub fn generate_randomness(&self, label: &BigInt) -> BigInt {
         let h = generate_random_point(&Converter::to_bytes(label));
